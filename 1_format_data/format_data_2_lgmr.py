@@ -1,20 +1,24 @@
 #==============================================================================
 # Make a standardized netCDF file for the LGMR.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #==============================================================================
 
+import sys
 import numpy as np
 import xarray as xr
 import utils
 
 
+#%% SETTINGS
+
+#var_txt = 'tas'
+#var_txt = 'd18Op'
+var_txt = sys.argv[1]
+
+
 #%% LOAD DATA
 # Note: data can be downloaded at: https://www.ncei.noaa.gov/access/paleo-search/study/33112
-
-var_txt = 'tas'
-var_txt = 'd18Op'
-quantity_txt = 'annual'
 
 print('=== Processing LGMR ===')
 data_dir = '/projects/pd_lab/data/paleoclimate_reconstructions/Holocene_reconstructions/Osman_etal_2021/'
@@ -104,5 +108,5 @@ data_xarray_output = xr.Dataset(
 
 # Save new array
 output_dir = '/projects/pd_lab/data/paleoclimate_reconstructions/presto_format/'
-output_name = 'lgmr_v1_0_0_'+var_txt+'_'+quantity_txt+'.nc'
+output_name = 'lgmr_v1_0_0_'+var_txt+'_annual.nc'
 data_xarray_output.to_netcdf(output_dir+output_name)

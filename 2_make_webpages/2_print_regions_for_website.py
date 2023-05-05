@@ -85,8 +85,8 @@ for i in range(n_regions):
         print_coords(region_lons,region_lats)
         counter += 1
     elif region_shape.geom_type == 'MultiPolygon':
-        for shape in region_shape:
-            region_lons,region_lats = shape.exterior.coords.xy
+        for subregion_shape in region_shape.geoms:
+            region_lons,region_lats = subregion_shape.exterior.coords.xy
             print_coords(region_lons,region_lats)
             counter += 1
     else: print(' === ERROR: Variable is not a Polygon or MultiPolygon ===')

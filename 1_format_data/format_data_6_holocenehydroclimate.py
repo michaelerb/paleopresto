@@ -1,19 +1,23 @@
 #==============================================================================
 # Make a standardized netcdf file for the Holocene Hydroclimate composites.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #=============================================================================
 
+import sys
 import numpy as np
 import xarray as xr
 import glob
 import regionmask
+from pyproj import Proj
+from shapely.geometry import shape
 
 
 #%% SETTINGS
 
-var_txt = 'tas'
+#var_txt = 'tas'
 #var_txt = 'precip'
+var_txt = sys.argv[1]
 
 
 #%% WGI REGIONS
@@ -24,34 +28,34 @@ ar6_abbreviations = ar6_all.abbrevs
 n_regions = len(ar6_abbreviations)
 
 
+#%% FUNCTIONS
+
+# A Function to calculate the area of each region
+def calculate_area(region_coords):
+    region_lons,region_lats = region_coords
+    proj_equalarea = Proj("+proj=aea +lat_1=29.5 +lat_2=42.5")
+    region_x,region_y = proj_equalarea(region_lons,region_lats)
+    region_new_polygon = {'type':'polygon','coordinates':[zip(region_x,region_y)]}
+    area_region = shape(region_new_polygon).area
+    area_region = area_region / 1000000  # Convert m2 to km2
+    return area_region
+
+
 #%% COMPUTE AREAS
 
-# Make a lat/lon grid
-lat = np.arange(-89.5,90,1)
-lon = np.arange(-179.5,180,1)
-
-ar6_mask = regionmask.defined_regions.ar6.all.mask(lon,lat).values
-lon_2d,lat_2d = np.meshgrid(lon,lat)
-lon_flatten = lon_2d.flatten()
-lat_flatten = lat_2d.flatten()
-ar6_mask_flatten = ar6_mask.flatten()
-
+# Loop through the regions, calculating the area of each
 ar6_area = np.zeros(n_regions); ar6_area[:] = np.nan
 for i in range(n_regions):
-    ind_selected = ar6_mask_flatten == i
-    ar6_area[i] = np.sum(np.cos(np.radians(lat_flatten[ind_selected])))
-
-"""
-# Get coordinates for each region
-i=0
-for i in range(n_regions):
-    region_shape  = ar6_all[i]._polygon
+    region_shape = ar6_all[i]._polygon
     if region_shape.geom_type == 'Polygon':
-        region_lons,region_lats = region_shape.exterior.coords.xy
+        region_area = calculate_area(region_shape.exterior.coords.xy)
     elif region_shape.geom_type == 'MultiPolygon':
-        for shape in region_shape:
-            region_lons,region_lats = shape.exterior.coords.xy
-"""
+        region_area = 0
+        for subregion_shape in region_shape.geoms: region_area = region_area + calculate_area(subregion_shape.exterior.coords.xy)
+    #
+    ar6_area[i] = region_area
+
+print('Total area:',sum(ar6_area)/1000000,'million km2')  # This should be approximately 510.1 million km2
 
 
 #%% SET UP

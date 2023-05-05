@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a set of maps and time series for the visualizer webpage.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #==============================================================================
 
 import sys
@@ -226,7 +226,7 @@ elif ref_period_txt == '1951-1980 CE': ind_ref = np.where((year >= 1951) & (age 
 var_ens  = var_ens  - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,None,:,:]
 var_mean = var_mean - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,:,:]
 
-if dataset_txt == 'lmr': #TODO: Fix this later
+if dataset_txt == 'lmr': #TODO: Improve this later
     var_upper_2std = var_ens + (2*var_ens_stdev)
     var_lower_2std = var_ens - (2*var_ens_stdev)
 
@@ -305,7 +305,7 @@ if dataset_txt != 'holocenehydroclimate':
 #%% FIGURES
 
 # Get the colors from the colorbar. This is important for non-linear colorbars
-colors_from_cmap = matplotlib.cm.get_cmap(cmap)
+colors_from_cmap = matplotlib.colormaps[cmap]
 n_colors = len(levels)+1
 colors_selected = colors_from_cmap(np.linspace(0,1,n_colors))
 
@@ -349,7 +349,9 @@ for i,time in enumerate(time_var):
     ax1.axvline(x=time,color='gray',alpha=1,linestyle='--',linewidth=1)
     ax1.axhline(y=0,color='gray',alpha=0.5,linestyle='--',linewidth=1)
     ax1.set_xlim(x_range[0],x_range[1]+(x_range[1]-x_range[0])/100)
-    ax1.set_title('Global: '+str('{:.2f}'.format(globalmean_all[i]))+' '+unit_txt,fontsize=18)
+    if dataset_txt == 'holocenehydroclimate': chosen_txt = 'Mean'
+    else: chosen_txt = 'Global'
+    ax1.set_title(chosen_txt+': '+str('{:.2f}'.format(globalmean_all[i]))+' '+unit_txt,fontsize=18)
     if save_instead_of_plot:
         plt.savefig(output_dir+'info_'+filename_txt+'_'+str(int(np.ceil(time))).zfill(5)+'.png',dpi=50,format='png',bbox_inches='tight')
         plt.close()
@@ -361,7 +363,8 @@ for i,time in enumerate(time_var):
     # Make the primary map to show
     plt.figure(figsize=(10,10))
     ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
-    ax1.set_extent([-180,180,-85,85],ccrs.PlateCarree())
+    #ax1.set_extent([-180,180,-85,85],crs=ccrs.PlateCarree())
+    #ax1.set_extent([-179.9,179.9,-85,85],crs=ccrs.PlateCarree())
     if map_type == 'contourf':
         var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_mean_allmethods[i,:,:],coord=lon)
         map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
@@ -402,7 +405,7 @@ for i,time in enumerate(time_var):
 i=0;time=time_var[i]
 plt.figure(figsize=(10,10))
 ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
-ax1.set_extent([-180,180,-85,85],ccrs.PlateCarree())
+#ax1.set_extent([-180,180,-85,85],crs=ccrs.PlateCarree())
 if map_type == 'contourf':
     var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_mean_allmethods[i,:,:],coord=lon)
     map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
@@ -411,6 +414,7 @@ elif map_type == 'pcolormesh':
     map1 = ax1.pcolormesh(lon_bounds_2d,lat_bounds_2d,var_mean_allmethods[i,:,:],cmap=cmap,vmin=-2,vmax=2,transform=ccrs.PlateCarree())
     colorbar = plt.colorbar(map1,orientation='horizontal',ax=ax1,fraction=0.08,pad=0.02)
 elif map_type == 'regions_ipcc_ar6':
+    norm = matplotlib.colors.Normalize(vmin=-2,vmax=2,clip=True)
     colorbar = plt.colorbar(matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap),orientation='horizontal',ax=ax1,fraction=0.08,pad=0.02)
 plt.gca().set_visible(False)
 colorbar.set_label(colorbar_txt+', rel. '+ref_period_txt,fontsize=16)
@@ -434,11 +438,12 @@ if make_gridded_ts:
     print('Step 2: Making time series at points: '+str(n_total))
     for j in j_for_ts:
         for i in i_for_ts:
+            #
             # Make an interactive time series with bokeh
             lat_txt = str('{:.1f}'.format(lat[j]))
             lon_txt = str('{:.1f}'.format(lon_neg[i]))
-            p1 = figure(plot_width=1200,
-                        plot_height=ts_height,
+            p1 = figure(width=1200,
+                        height=ts_height,
                         title=title_txt_bokeh+' for '+dataset_name+', v.'+version_txt.replace('_','.')+' near '+lat_txt+'\u00B0N, '+lon_txt+'\u00B0E',
                         tools='pan,box_zoom,hover,save,reset',
                         active_drag='box_zoom',active_inspect='hover',
@@ -455,7 +460,7 @@ if make_gridded_ts:
             for k,method_chosen in enumerate(method):
                 if dataset_txt == 'era20c':
                     pass  # ERA20C does not have an ensemble
-                elif dataset_txt == 'lmr': #TODO: Fix this later
+                elif dataset_txt == 'lmr': #TODO: Improve this later
                     p1.varea(time_var,np.mean(var_lower_2std[k,:,:,j,i].values,axis=0),np.mean(var_upper_2std[k,:,:,j,i].values,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
                 else:
                     p1.varea(time_var,np.percentile(var_ens[k,:,:,j,i].values,2.5,axis=0),np.percentile(var_ens[k,:,:,j,i].values,97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
@@ -490,6 +495,7 @@ if make_gridded_ts:
 if make_regional_ts:
     #
     if dataset_txt != 'holocenehydroclimate':
+        #
         ### Compute regional means
         # Get all WGI regions
         ar6_all = regionmask.defined_regions.ar6.all
@@ -504,7 +510,7 @@ if make_regional_ts:
         # Compute regional means
         var_regional     = var_mean.weighted(mask_3D * lat_weights).mean(dim=('lat','lon')).values
         var_regional_ens = var_ens.weighted(mask_3D * lat_weights).mean(dim=('lat','lon')).values
-        if dataset_txt == 'lmr': #TODO: Fix this later
+        if dataset_txt == 'lmr': #TODO: Improve this later
             var_regional_ens_stdev = var_ens_stdev.weighted(mask_3D * lat_weights).mean(dim=('lat','lon')).values
             var_upper_2std = var_regional_ens + (2*var_regional_ens_stdev)
             var_lower_2std = var_regional_ens - (2*var_regional_ens_stdev)
@@ -515,7 +521,6 @@ if make_regional_ts:
     print('Step 3: Making time series for regions: '+str(n_regions))
     j = 0
     for j in range(n_regions):
-        #print('Plotting regional time series: '+str(j+1)+'/'+str(n_regions+1))
         #
         region_number = str(j+1)
         region_abbrev = ar6_all.abbrevs[j]
@@ -523,8 +528,8 @@ if make_regional_ts:
         ts_to_plot    = var_regional[:,:,j]
         #
         # Make an interactive time series with bokeh
-        p1 = figure(plot_width=1200,
-                    plot_height=ts_height,
+        p1 = figure(width=1200,
+                    height=ts_height,
                     title=title_txt_bokeh+' for '+dataset_name+', v.'+version_txt.replace('_','.')+' for region '+region_abbrev+' ('+region_name+')',
                     tools='pan,box_zoom,hover,save,reset',
                     active_drag='box_zoom',active_inspect='hover',
@@ -541,11 +546,13 @@ if make_regional_ts:
         for k,method_chosen in enumerate(method):
             if dataset_txt == 'era20c':
                 pass  # ERA20C does not have an ensemble
-            elif dataset_txt == 'lmr': #TODO: Fix this later
+            elif dataset_txt == 'lmr': #TODO: Improve this later
                 p1.varea(time_var,np.mean(var_lower_2std[k,:,:,j].values,axis=0),np.mean(var_upper_2std[k,:,:,j].values,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
             else:
                 p1.varea(time_var,np.percentile(var_regional_ens[k,:,:,j],2.5,axis=0),np.percentile(var_regional_ens[k,:,:,j],97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
             p1.line(time_var,ts_to_plot[k,:],color=color_list[k],line_width=1,legend_label=method_chosen)
+        line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
+        p1.renderers.extend([line0])
         p1.background_fill_color           = 'white'
         p1.grid.grid_line_color            = '#e0e0e0'
         p1.axis.axis_label_text_font_style = 'normal'

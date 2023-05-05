@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the LMR.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #==============================================================================
 
 import sys
@@ -12,13 +12,13 @@ import utils
 
 #%% SETTINGS
 
-version_txt = '2.0'
+#version_txt = '2.0'
 #version_txt = '2.1'
-var_txt     = 'tas'
+#var_txt     = 'tas'
 #var_txt     = 'precip'
 
-#version_txt = sys.argv[1]
-#var_txt     = sys.argv[2]
+version_txt = sys.argv[1]
+var_txt     = sys.argv[2]
 
 
 #%% LOAD DATA

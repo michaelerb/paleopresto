@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the Neukom et al., 2019 reconstructions.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #=============================================================================
 
 import numpy as np
@@ -16,12 +16,12 @@ print('=== Processing Neukom et al., 2019 reconstructions ===')
 
 # Load data
 data_dir = '/projects/pd_lab/data/paleoclimate_reconstructions/spatial_2k_reconstructions/'
-data_xarray_am      = xr.open_dataset(data_dir+'AM.nc')
-data_xarray_cca     = xr.open_dataset(data_dir+'CCA.nc')
-data_xarray_cps     = xr.open_dataset(data_dir+'CPS.nc')
-data_xarray_da      = xr.open_dataset(data_dir+'DA.nc')
-data_xarray_graphem = xr.open_dataset(data_dir+'GraphEM.nc')
-data_xarray_pcr     = xr.open_dataset(data_dir+'PCR.nc')
+data_xarray_am      = xr.open_dataset(data_dir+'AM.nc',     use_cftime=True)
+data_xarray_cca     = xr.open_dataset(data_dir+'CCA.nc',    use_cftime=True)
+data_xarray_cps     = xr.open_dataset(data_dir+'CPS.nc',    use_cftime=True)
+data_xarray_da      = xr.open_dataset(data_dir+'DA.nc',     use_cftime=True)
+data_xarray_graphem = xr.open_dataset(data_dir+'GraphEM.nc',use_cftime=True)
+data_xarray_pcr     = xr.open_dataset(data_dir+'PCR.nc',    use_cftime=True)
 
 # Compute global means for Neukom reconstructions
 lat_weights = np.cos(np.deg2rad(data_xarray_am.lat))

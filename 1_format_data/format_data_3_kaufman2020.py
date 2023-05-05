@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the Kaufman et al., 2020 composites.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #==============================================================================
 
 import numpy as np

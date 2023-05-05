@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netCDF file for Holocene Reconstruction.
 #    author: Michael P. Erb
-#    date  : 5/4/2023
+#    date  : 5/5/2023
 #==============================================================================
 
 import numpy as np
@@ -58,7 +58,7 @@ data_xarray_output = xr.Dataset(
     coords={
         'method':     (['method'],methods),
         'notes':      (['notes'],notes),
-        'ens_global': (['ens_global'],ens_global,{'description':'ensemble members'}),  #TODO: The global and spatial ensemble members won't match. Look into this. 
+        'ens_global': (['ens_global'],ens_global,{'description':'ensemble members'}),  #TODO: The global and spatial ensemble members won't match. Look into this in all scripts.
         'ens_spatial':(['ens_spatial'],ens_spatial,{'description':'selected ensemble members'}),
         'age':        (['age'],age,{'units':'yr BP'}),
         'lat':        (['lat'],lat,{'units':'degrees_north'}),
