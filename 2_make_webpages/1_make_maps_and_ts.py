@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a set of maps and time series for the visualizer webpage.
 #    author: Michael P. Erb
-#    date  : 5/5/2023
+#    date  : 5/8/2023
 #==============================================================================
 
 import sys
@@ -223,8 +223,9 @@ else:                                       map_type = 'contourf';         make_
 # Remove the chosen reference period from the reconstruction
 if   ref_period_txt == '0-1 ka':       ind_ref = np.where((age >= 0)     & (age < 1000))[0]
 elif ref_period_txt == '1951-1980 CE': ind_ref = np.where((year >= 1951) & (age <= 1980))[0]
-var_ens  = var_ens  - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,None,:,:]
-var_mean = var_mean - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,:,:]
+var_ens    = var_ens    - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,None,:,:]
+var_mean   = var_mean   - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,:,:]
+var_global = var_global - np.nanmean(np.nanmean(var_global[:,:,ind_ref],axis=2),axis=1)[:,None,None]
 
 if dataset_txt == 'lmr': #TODO: Improve this later
     var_upper_2std = var_ens + (2*var_ens_stdev)
