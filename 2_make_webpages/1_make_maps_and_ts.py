@@ -78,40 +78,6 @@ lon_bounds = handle['lon_bounds'].values
 handle.close()
 year = 1950-age
 
-#TODO: Improve this later.
-if dataset_txt == 'lmr':
-    #
-    if   version_txt == '2_0_0': version_txt_lmr = '2.0'
-    elif version_txt == '2_1_0': version_txt_lmr = '2.1'
-    if   var_txt == 'tas':    var_txt_lmr = 'air'
-    elif var_txt == 'precip': var_txt_lmr = 'prate'
-    #
-    data_dir_lmr = '/projects/pd_lab/data/paleoclimate_reconstructions/LMR_final/'
-    handle_stdev = xr.open_dataset(data_dir_lmr+var_txt_lmr+'_MCruns_ensemble_spread_LMRv'+version_txt_lmr+'.nc')
-    var_ens_stdev_array = handle_stdev[var_txt_lmr].values
-    var_ens_stdev_array = np.swapaxes(var_ens_stdev_array,0,1)
-    var_ens_stdev_array = np.expand_dims(var_ens_stdev_array,axis=0)
-    handle_stdev.close()
-    #
-    # Put in an xarray
-    data_xarray_stdev = xr.Dataset(
-        {
-            'var_ens_stdev': (['method','ens','age','lat','lon'],var_ens_stdev_array)
-        },
-        coords={
-            'method':    (['method'],['LMR']),
-            'ens':       (['ens'],np.arange(20)+1,{'description':'standard deviations of the 20 Monte Carlo interations'}),
-            'age':       (['age'],age,{'units':'yr BP'}),
-            'lat':       (['lat'],lat,{'units':'degrees_north'}),
-            'lon':       (['lon'],lon,{'units':'degrees_east'}),
-            'lat_bounds':(['lat_bounds'],lat_bounds,{'units':'degrees_north'}),
-            'lon_bounds':(['lon_bounds'],lon_bounds,{'units':'degrees_east'}),
-        },
-    )
-    #
-    var_ens_stdev = data_xarray_stdev['var_ens_stdev']
-    if var_txt == 'precip': var_ens_stdev = var_ens_stdev*60*60*24 # Convert precipitation units from kg/m2/s to mm/day
-
 
 #%% Set parameters
 # Set some parameters by variable type
@@ -197,18 +163,12 @@ elif dataset_txt == 'era5':
 
 # Set some variables for the holocenehydroclimate dataset
 if dataset_txt == 'holocenehydroclimate':
-    if var_txt == 'tas':
-        unit_txt        = 'Z-score'
-        html_unit_txt   = 'Z-score'
-        colorbar_txt    = quantity_txt+' temperature (Z-score)'
-        title_txt_bokeh = quantity_txt+' temperature (Z-score)'
-        ts_yrange       = [-4,4]
-    elif var_txt == 'precip':
-        unit_txt        = 'Z-score'
-        html_unit_txt   = 'Z-score'
-        colorbar_txt    = quantity_txt+' hydroclimate (Z-score)'
-        title_txt_bokeh = quantity_txt+' hydroclimate (Z-score)'
-        ts_yrange       = [-4,4]
+    if   var_txt == 'tas':    colorbar_txt = quantity_txt+' temperature (Z-score)'
+    elif var_txt == 'precip': colorbar_txt = quantity_txt+' hydroclimate (Z-score)'
+    unit_txt        = 'Z-score'
+    html_unit_txt   = 'Z-score'
+    title_txt_bokeh = colorbar_txt
+    ts_yrange       = [-4,4]
 
 # Set some miscellaneous parameters
 if   dataset_txt in ['era20c','era5']:    time_var = year; time_name_txt = 'Year'; time_unit_txt = 'CE';    ref_period_txt = '1951-1980 CE'
@@ -226,10 +186,6 @@ elif ref_period_txt == '1951-1980 CE': ind_ref = np.where((year >= 1951) & (age 
 var_ens    = var_ens    - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,None,:,:]
 var_mean   = var_mean   - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,:,:]
 var_global = var_global - np.nanmean(np.nanmean(var_global[:,:,ind_ref],axis=2),axis=1)[:,None,None]
-
-if dataset_txt == 'lmr': #TODO: Improve this later
-    var_upper_2std = var_ens + (2*var_ens_stdev)
-    var_lower_2std = var_ens - (2*var_ens_stdev)
 
 # Compute the mean of all methods
 var_mean_allmethods = np.nanmean(var_mean,axis=0)
@@ -345,7 +301,8 @@ for i,time in enumerate(time_var):
     plt.figure(figsize=(4,2))
     ax1 = plt.subplot2grid((1,1),(0,0))
     ax1.axis('off')
-    ax1.fill_between(time_var,np.percentile(globalmean_all_ens,2.5,axis=0),np.percentile(globalmean_all_ens,97.5,axis=0),color='gray',alpha=0.25)
+    if (dataset_txt == 'era20c') or ((dataset_txt == 'lmr') & (var_txt != 'tas')): pass  # LMR (expect for tas) and ERA20C do not have ensemble values
+    else: ax1.fill_between(time_var,np.percentile(globalmean_all_ens,2.5,axis=0),np.percentile(globalmean_all_ens,97.5,axis=0),color='gray',alpha=0.25)
     ax1.plot(time_var,globalmean_all)
     ax1.axvline(x=time,color='gray',alpha=1,linestyle='--',linewidth=1)
     ax1.axhline(y=0,color='gray',alpha=0.5,linestyle='--',linewidth=1)
@@ -459,12 +416,8 @@ if make_gridded_ts:
             p1.y_range.end   = ts_yrange[1]
             #
             for k,method_chosen in enumerate(method):
-                if dataset_txt == 'era20c':
-                    pass  # ERA20C does not have an ensemble
-                elif dataset_txt == 'lmr': #TODO: Improve this later
-                    p1.varea(time_var,np.mean(var_lower_2std[k,:,:,j,i].values,axis=0),np.mean(var_upper_2std[k,:,:,j,i].values,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
-                else:
-                    p1.varea(time_var,np.percentile(var_ens[k,:,:,j,i].values,2.5,axis=0),np.percentile(var_ens[k,:,:,j,i].values,97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
+                if dataset_txt in ['lmr','era20c']: pass  # LMR and ERA20C do not have ensemble values
+                else: p1.varea(time_var,np.percentile(var_ens[k,:,:,j,i].values,2.5,axis=0),np.percentile(var_ens[k,:,:,j,i].values,97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
                 p1.line(time_var,var_mean.values[k,:,j,i],color=color_list[k],line_width=1,legend_label=method_chosen)
             line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
             p1.renderers.extend([line0])
@@ -511,10 +464,6 @@ if make_regional_ts:
         # Compute regional means
         var_regional     = var_mean.weighted(mask_3D * lat_weights).mean(dim=('lat','lon')).values
         var_regional_ens = var_ens.weighted(mask_3D * lat_weights).mean(dim=('lat','lon')).values
-        if dataset_txt == 'lmr': #TODO: Improve this later
-            var_regional_ens_stdev = var_ens_stdev.weighted(mask_3D * lat_weights).mean(dim=('lat','lon')).values
-            var_upper_2std = var_regional_ens + (2*var_regional_ens_stdev)
-            var_lower_2std = var_regional_ens - (2*var_regional_ens_stdev)
     #
     #
     ### Make regional plots
@@ -545,12 +494,8 @@ if make_regional_ts:
         p1.y_range.end   = ts_yrange[1]
         #
         for k,method_chosen in enumerate(method):
-            if dataset_txt == 'era20c':
-                pass  # ERA20C does not have an ensemble
-            elif dataset_txt == 'lmr': #TODO: Improve this later
-                p1.varea(time_var,np.mean(var_lower_2std[k,:,:,j].values,axis=0),np.mean(var_upper_2std[k,:,:,j].values,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
-            else:
-                p1.varea(time_var,np.percentile(var_regional_ens[k,:,:,j],2.5,axis=0),np.percentile(var_regional_ens[k,:,:,j],97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
+            if dataset_txt in ['lmr','era20c']: pass  # LMR and ERA20C do not have ensemble values
+            else: p1.varea(time_var,np.percentile(var_regional_ens[k,:,:,j],2.5,axis=0),np.percentile(var_regional_ens[k,:,:,j],97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
             p1.line(time_var,ts_to_plot[k,:],color=color_list[k],line_width=1,legend_label=method_chosen)
         line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
         p1.renderers.extend([line0])
