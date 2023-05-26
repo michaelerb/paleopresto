@@ -5,7 +5,6 @@
 #==============================================================================
 
 import sys
-sys.path.append('/home/mpe32/analysis/15_Holocene_Reconstruction/data_assimilation')
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -198,68 +197,7 @@ globalmean_all_ens = np.mean(var_global,axis=0)
 globalmean_all     = np.mean(globalmean_all_ens,axis=0)
 
 
-#%% Compute grid aspects
-n_total = len(lat)*len(lon)
-
-reduce_number_of_ts = True
-if reduce_number_of_ts & (dataset_txt not in ['holocenehydroclimate','kaufman2020']):
-    #
-    # Print stats for original grid
-    lat_grid_mean = np.abs(np.mean(lat[1:]-lat[:-1]))
-    lon_grid_mean = np.abs(np.mean(lon[1:]-lon[:-1]))
-    print('=== ORIGINAL GRID ===')
-    print('Original grid size (degrees):')
-    print('Lat:',lat_grid_mean)
-    print('Lon:',lon_grid_mean)
-    print('Total points:',n_total)
-    #
-    # Figure out skip values
-    lat_grid_desired = 5
-    lon_grid_desired = 5
-    lat_skip_factor = max(round(lat_grid_desired/lat_grid_mean),1)
-    lon_skip_factor = max(round(lon_grid_desired/lon_grid_mean),1)
-    print('/n--- Skip factors ---')
-    print('Lat:',lat_skip_factor)
-    print('Lon:',lon_skip_factor)
-    #
-    lat_start_value = int(np.floor(np.remainder(len(lat)-1,lat_skip_factor)/2))
-    lon_start_value = int(np.floor(np.remainder(len(lon)-1,lon_skip_factor)/2))
-    if dataset_txt == 'era5': lon_start_value += 1
-    j_for_ts = np.arange(lat_start_value,len(lat),lat_skip_factor)
-    i_for_ts = np.arange(lon_start_value,len(lon),lon_skip_factor)
-    print('/n=== GRID WITH SKIPPED POINTS ===')
-    print('Lat:',np.abs(np.mean(lat[j_for_ts][1:]-lat[j_for_ts][:-1])))
-    print('Lon:',np.abs(np.mean(lon[i_for_ts][1:]-lon[i_for_ts][:-1])))
-    print('Total points:',len(lat[j_for_ts])*len(lon[i_for_ts]))
-    #
-else:
-    #
-    j_for_ts = np.arange(len(lat))
-    i_for_ts = np.arange(len(lon))
-
-
-#%% Print grid lats and lons
-
-if dataset_txt != 'holocenehydroclimate':
-    #
-    # Make a version of the longitude that goes from -180 to 180
-    lon_neg = copy.deepcopy(lon)
-    lon_neg[lon_neg > 180] = lon_neg[lon_neg > 180] - 360
-    #
-    # Make versions for printing
-    lat_string = ','.join([str('{:.1f}'.format(value)) for value in lat[j_for_ts]])
-    lon_string = ','.join([str('{:.1f}'.format(value)) for value in lon_neg[i_for_ts]])
-    #
-    lat_string = "          var lat_all = ["+lat_string+"];"
-    lon_string = "          var lon_all = ["+lon_string+"];"
-    #
-    # Save the latitudes and longitudes to a file
-    with open('latlon_'+filename_txt+'.txt','w') as f:
-        f.write(lat_string+'\n')
-        f.write(lon_string)
-
-
-#%% FIGURES
+#%% MAPS PREPARATION
 
 # Get the colors from the colorbar. This is important for non-linear colorbars
 colors_from_cmap = matplotlib.colormaps[cmap]
@@ -269,26 +207,12 @@ colors_selected = colors_from_cmap(np.linspace(0,1,n_colors))
 # Make 2D lon bound variables
 lon_bounds_2d,lat_bounds_2d = np.meshgrid(lon_bounds,lat_bounds)
 
+# Get all WGI regions
+ar6_all = regionmask.defined_regions.ar6.all
+ar6_abbreviations = ar6_all.abbrevs
 
-#%% If the reconstruction uses the IPCC AR6 regions, do some processing
-if map_type == 'regions_ipcc_ar6':
-    #
-    # Get all WGI regions
-    ar6_all = regionmask.defined_regions.ar6.all
-    ar6_abbreviations = ar6_all.abbrevs
-    regions_all = lat
-    #
-    # Create some variables to use later
-    n_methods = var_ens.shape[0]
-    n_ens     = var_ens.shape[1]
-    n_time    = var_ens.shape[2]
-    n_regions = len(ar6_abbreviations)
-    var_regional_ens = np.zeros((n_methods,n_ens,n_time,n_regions)); var_regional_ens[:] = np.nan
-    var_regional     = np.zeros((n_methods,n_time,n_regions));       var_regional[:]     = np.nan
-    for i,region_txt in enumerate(ar6_abbreviations):
-        ind_region = np.where(region_txt==regions_all)[0][0]
-        var_regional_ens[:,:,:,i] = var_ens[:,:,:,ind_region,0]
-        var_regional[:,:,i]       = var_mean[:,:,ind_region,0]
+# If the reconstruction uses the IPCC AR6 regions, get some data about regions
+if map_type == 'regions_ipcc_ar6': regions_all = lat
 
 
 #%% MAPS
@@ -385,9 +309,113 @@ else:
     plt.show()
 
 
-#%% TIME SERIES
+#%% GRID CALCULATIONS
 
-color_list = ['black','royalblue','salmon','olive','orange','darkseagreen']
+reduce_number_of_ts = True
+
+# If requested, figure out a reduced set of indices for generating figures
+if reduce_number_of_ts & (dataset_txt not in ['holocenehydroclimate','kaufman2020']):
+    #
+    # Select the approximate grid to generate time series figures for
+    lat_grid_desired = 5
+    lon_grid_desired = 5
+    #
+    # Get the indicies for points along the approximate grid
+    lat_grid_mean = np.abs(np.mean(lat[1:]-lat[:-1]))
+    lon_grid_mean = np.abs(np.mean(lon[1:]-lon[:-1]))
+    lat_skip_factor = max(round(lat_grid_desired/lat_grid_mean),1)
+    lon_skip_factor = max(round(lon_grid_desired/lon_grid_mean),1)
+    lat_start_value = int(np.floor(np.remainder(len(lat)-1,lat_skip_factor)/2))
+    lon_start_value = int(np.floor(np.remainder(len(lon)-1,lon_skip_factor)/2))
+    if dataset_txt == 'era5': lon_start_value += 1
+    j_for_ts = np.arange(lat_start_value,len(lat),lat_skip_factor)
+    i_for_ts = np.arange(lon_start_value,len(lon),lon_skip_factor)
+    #
+    # Print some stats
+    print('--- Skip factors for grid locations ---')
+    print('Lat:',lat_skip_factor)
+    print('Lon:',lon_skip_factor)
+    print('Original number of locations:',len(lat)*len(lon))
+    print('New number of locations:     ',len(lat[j_for_ts])*len(lon[i_for_ts]))
+    #
+else:
+    #
+    j_for_ts = np.arange(len(lat))
+    i_for_ts = np.arange(len(lon))
+
+# Save grid lats and lons
+if dataset_txt != 'holocenehydroclimate':
+    #
+    # Make a version of the longitude that goes from -180 to 180
+    lon_neg = copy.deepcopy(lon)
+    lon_neg[lon_neg > 180] = lon_neg[lon_neg > 180] - 360
+    #
+    # Make versions for printing
+    lat_string = ','.join([str('{:.1f}'.format(value)) for value in lat[j_for_ts]])
+    lon_string = ','.join([str('{:.1f}'.format(value)) for value in lon_neg[i_for_ts]])
+    #
+    lat_string = "          var lat_all = ["+lat_string+"];"
+    lon_string = "          var lon_all = ["+lon_string+"];"
+    #
+    # Save the latitudes and longitudes to a file
+    with open('latlon_'+filename_txt+'.txt','w') as f:
+        f.write(lat_string+'\n')
+        f.write(lon_string)
+
+
+#%% TIME SERIES FUNCTION
+
+# A function to make a time series
+def make_time_series(var_ens_to_plot,var_mean_to_plot,location_title_txt,outputfile_txt,text_color):
+    #
+    # Make an interactive time series with bokeh
+    p1 = figure(width=1200,
+                height=ts_height,
+                title=title_txt_bokeh+' for '+dataset_name+', v.'+version_txt.replace('_','.')+location_title_txt,
+                tools='pan,box_zoom,hover,save,reset',
+                active_drag='box_zoom',active_inspect='hover',
+                x_range=Range1d(bounds=(min(x_range),max(x_range))))
+    #
+    p1.title.text_color = text_color
+    p1.xaxis.axis_label = time_name_txt+' ('+time_unit_txt+')'
+    p1.yaxis.axis_label = title_txt_bokeh
+    p1.x_range.start = x_range[0]
+    p1.x_range.end   = x_range[1]
+    p1.y_range.start = ts_yrange[0]
+    p1.y_range.end   = ts_yrange[1]
+    #
+    for k,method_chosen in enumerate(method):
+        if dataset_txt in ['lmr','era20c']: pass  # LMR and ERA20C do not have ensemble values
+        else: p1.varea(time_var,np.percentile(var_ens_to_plot[k,:,:],2.5,axis=0),np.percentile(var_ens_to_plot[k,:,:],97.5,axis=0),color=method_color_list[k],alpha=0.1,legend_label=method_chosen)
+        p1.line(time_var,var_mean_to_plot[k,:],color=method_color_list[k],line_width=1,legend_label=method_chosen)
+    line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
+    p1.renderers.extend([line0])
+    p1.background_fill_color           = 'white'
+    p1.grid.grid_line_color            = '#e0e0e0'
+    p1.axis.axis_label_text_font_style = 'normal'
+    p1.axis.axis_label_text_font_size  = '16px'
+    p1.title.text_font_size            = '16px'
+    p1.title.align                     = 'center'
+    p1.legend.location     = 'bottom_right'
+    p1.legend.click_policy = 'hide'
+    #
+    hover = p1.select_one(HoverTool)
+    hover.tooltips = [
+            (time_name_txt,'@x{int} '+time_unit_txt),
+            ('Temp','@y \u00B0C'),
+            ]
+    hover.mode='vline'
+    #
+    # Save as html
+    html = file_html(p1,CDN,outputfile_txt)
+    output_file = open(output_dir+outputfile_txt,'w')
+    output_file.write(html)
+    output_file.close()
+
+
+#%% MAKE TIME SERIES FOR LOCATIONS
+
+method_color_list = ['black','royalblue','salmon','olive','orange','darkseagreen']
 
 # Make a timeseries at every location
 if make_gridded_ts:
@@ -400,59 +428,35 @@ if make_gridded_ts:
             # Make an interactive time series with bokeh
             lat_txt = str('{:.1f}'.format(lat[j]))
             lon_txt = str('{:.1f}'.format(lon_neg[i]))
-            p1 = figure(width=1200,
-                        height=ts_height,
-                        title=title_txt_bokeh+' for '+dataset_name+', v.'+version_txt.replace('_','.')+' near '+lat_txt+'\u00B0N, '+lon_txt+'\u00B0E',
-                        tools='pan,box_zoom,hover,save,reset',
-                        active_drag='box_zoom',active_inspect='hover',
-                        x_range=Range1d(bounds=(min(x_range),max(x_range))))
-            #
-            p1.title.text_color = 'black'
-            p1.xaxis.axis_label = time_name_txt+' ('+time_unit_txt+')'
-            p1.yaxis.axis_label = title_txt_bokeh
-            p1.x_range.start = x_range[0]
-            p1.x_range.end   = x_range[1]
-            p1.y_range.start = ts_yrange[0]
-            p1.y_range.end   = ts_yrange[1]
-            #
-            for k,method_chosen in enumerate(method):
-                if dataset_txt in ['lmr','era20c']: pass  # LMR and ERA20C do not have ensemble values
-                else: p1.varea(time_var,np.percentile(var_ens[k,:,:,j,i].values,2.5,axis=0),np.percentile(var_ens[k,:,:,j,i].values,97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
-                p1.line(time_var,var_mean.values[k,:,j,i],color=color_list[k],line_width=1,legend_label=method_chosen)
-            line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
-            p1.renderers.extend([line0])
-            p1.background_fill_color           = 'white'
-            p1.grid.grid_line_color            = '#e0e0e0'
-            p1.axis.axis_label_text_font_style = 'normal'
-            p1.axis.axis_label_text_font_size  = '16px'
-            p1.title.text_font_size            = '16px'
-            p1.title.align                     = 'center'
-            p1.legend.location     = 'bottom_right'
-            p1.legend.click_policy = 'hide'
-            #
-            hover = p1.select_one(HoverTool)
-            hover.tooltips = [
-                    (time_name_txt,'@x{int} '+time_unit_txt),
-                    ('Temp','@y \u00B0C'),
-                    ]
-            #hover.mode='vline'
-            #
-            # Save as html
-            outputfile_txt = 'ts_'+filename_txt+'_lat_'+lat_txt+'_lon_'+lon_txt+'.html'
-            html = file_html(p1,CDN,outputfile_txt)
-            output_file = open(output_dir+outputfile_txt,'w')
-            output_file.write(html)
-            output_file.close()
+            var_ens_to_plot    = var_ens[:,:,:,j,i].values
+            var_mean_to_plot   = var_mean[:,:,j,i].values
+            location_title_txt = ' near '+lat_txt+'\u00B0N, '+lon_txt+'\u00B0E'
+            outputfile_txt     = 'ts_'+filename_txt+'_lat_'+lat_txt+'_lon_'+lon_txt+'.html'
+            text_color         = 'black'
+            make_time_series(var_ens_to_plot,var_mean_to_plot,location_title_txt,outputfile_txt,text_color)
 
 
-#%% Make regional time series plots, if requested
+#%% MAKE TIME SERIES FOR REGIONS
+
+# Make regional time series plots, if requested
 if make_regional_ts:
     #
-    if dataset_txt != 'holocenehydroclimate':
+    ### Compute or retrieve regional means
+    if map_type == 'regions_ipcc_ar6':
         #
-        ### Compute regional means
-        # Get all WGI regions
-        ar6_all = regionmask.defined_regions.ar6.all
+        # In this case, regional means have already been created
+        n_methods = var_ens.shape[0]
+        n_ens     = var_ens.shape[1]
+        n_time    = var_ens.shape[2]
+        n_regions = len(ar6_abbreviations)
+        var_regional     = np.zeros((n_methods,n_time,n_regions));       var_regional[:]     = np.nan
+        var_regional_ens = np.zeros((n_methods,n_ens,n_time,n_regions)); var_regional_ens[:] = np.nan
+        for i,region_txt in enumerate(ar6_abbreviations):
+            ind_region = np.where(region_txt==regions_all)[0][0]
+            var_regional[:,:,i]       = var_mean[:,:,ind_region,0]
+            var_regional_ens[:,:,:,i] = var_ens[:,:,:,ind_region,0]
+        #
+    else:
         #
         # Make a mask for the different regions
         mask_3D = ar6_all.mask_3D(lon,lat)
@@ -469,60 +473,15 @@ if make_regional_ts:
     ### Make regional plots
     n_regions = len(ar6_all.abbrevs)
     print('Step 3: Making time series for regions: '+str(n_regions))
-    j = 0
     for j in range(n_regions):
         #
-        region_number = str(j+1)
-        region_abbrev = ar6_all.abbrevs[j]
-        region_name   = ar6_all.names[j]
-        ts_to_plot    = var_regional[:,:,j]
-        #
         # Make an interactive time series with bokeh
-        p1 = figure(width=1200,
-                    height=ts_height,
-                    title=title_txt_bokeh+' for '+dataset_name+', v.'+version_txt.replace('_','.')+' for region '+region_abbrev+' ('+region_name+')',
-                    tools='pan,box_zoom,hover,save,reset',
-                    active_drag='box_zoom',active_inspect='hover',
-                    x_range=Range1d(bounds=(min(x_range),max(x_range))))
-        #
-        p1.title.text_color = 'green'
-        p1.xaxis.axis_label = time_name_txt+' ('+time_unit_txt+')'
-        p1.yaxis.axis_label = title_txt_bokeh
-        p1.x_range.start = x_range[0]
-        p1.x_range.end   = x_range[1]
-        p1.y_range.start = ts_yrange[0]
-        p1.y_range.end   = ts_yrange[1]
-        #
-        for k,method_chosen in enumerate(method):
-            if dataset_txt in ['lmr','era20c']: pass  # LMR and ERA20C do not have ensemble values
-            else: p1.varea(time_var,np.percentile(var_regional_ens[k,:,:,j],2.5,axis=0),np.percentile(var_regional_ens[k,:,:,j],97.5,axis=0),color=color_list[k],alpha=0.1,legend_label=method_chosen)
-            p1.line(time_var,ts_to_plot[k,:],color=color_list[k],line_width=1,legend_label=method_chosen)
-        line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
-        p1.renderers.extend([line0])
-        p1.background_fill_color           = 'white'
-        p1.grid.grid_line_color            = '#e0e0e0'
-        p1.axis.axis_label_text_font_style = 'normal'
-        p1.axis.axis_label_text_font_size  = '16px'
-        p1.title.text_font_size            = '16px'
-        p1.title.align                     = 'center'
-        p1.legend.location     = 'bottom_right'
-        p1.legend.click_policy = 'hide'
-        #
-        hover = p1.select_one(HoverTool)
-        hover.tooltips = [
-                (time_name_txt,'@x{int} '+time_unit_txt),
-                ('Temp','@y \u00B0C'),
-                ]
-        #hover.mode='vline'
-        #
-        # Save as html
-        outputfile_txt = 'ts_'+filename_txt+'_region_'+region_abbrev+'.html'
-        html = file_html(p1,CDN,outputfile_txt)
-        output_file = open(output_dir+outputfile_txt,'w')
-        output_file.write(html)
-        output_file.close()
+        var_ens            = var_regional_ens[:,:,:,j]
+        var_mean_to_plot   = var_regional[:,:,j]
+        location_title_txt = ' for region '+ar6_all.abbrevs[j]+' ('+ar6_all.names[j]+')'
+        outputfile_txt     = 'ts_'+filename_txt+'_region_'+ar6_all.abbrevs[j]+'.html'
+        text_color         = 'green'
+        make_time_series(var_ens_to_plot,var_mean_to_plot,location_title_txt,outputfile_txt,text_color)
 
-
-#%%
 print('=== FINISHED ===')
 

@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the ERA5 reanalysis.
 #    author: Michael P. Erb
-#    date  : 5/5/2023
+#    date  : 5/26/2023
 #=============================================================================
 
 import sys
@@ -143,6 +143,13 @@ for i,year in enumerate(years):
 
 #%% CALCULATIONS 3
 
+# Find the years with data in all 12 months
+var_ann_mean = np.nanmean(np.nanmean(var_ann,axis=2),axis=1)
+years_with_data = np.isfinite(var_ann_mean)
+
+
+#%% CALCULATIONS 4
+
 # Calculate lat and lon bounds
 lat_bounds,lon_bounds = utils.bounding_latlon(lat,lon)
 
@@ -178,16 +185,16 @@ notes = ['']
 # Create new array
 data_xarray_output_ann = xr.Dataset(
     {
-        variable_txt+'_global':(['method','ens_global','age'],             var_global_ann),
-        variable_txt+'_mean':  (['method','age','lat','lon'],              var_ann),
-        variable_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_ann)
+        variable_txt+'_global':(['method','ens_global','age'],             var_global_ann[:,:,years_with_data]),
+        variable_txt+'_mean':  (['method','age','lat','lon'],              var_ann[:,years_with_data,:,:]),
+        variable_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_ann[:,:,years_with_data,:,:])
     },
     coords={
         'method':     (['method'],methods),
         'notes':      (['notes'],notes),
         'ens_global': (['ens_global'],ens_global,{'description':'ensemble members'}),
         'ens_spatial':(['ens_spatial'],ens_spatial,{'description':'ensemble members'}),
-        'age':        (['age'],age,{'units':'yr BP'}),
+        'age':        (['age'],age[years_with_data],{'units':'yr BP'}),
         'lat':        (['lat'],lat,{'units':'degrees_north'}),
         'lon':        (['lon'],lon,{'units':'degrees_east'}),
         'lat_bounds': (['lat_bounds'],lat_bounds,{'units':'degrees_north'}),
@@ -197,16 +204,16 @@ data_xarray_output_ann = xr.Dataset(
 
 data_xarray_output_jja = xr.Dataset(
     {
-        variable_txt+'_global':(['method','ens_global','age'],             var_global_jja),
-        variable_txt+'_mean':  (['method','age','lat','lon'],              var_jja),
-        variable_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_jja)
+        variable_txt+'_global':(['method','ens_global','age'],             var_global_jja[:,:,years_with_data]),
+        variable_txt+'_mean':  (['method','age','lat','lon'],              var_jja[:,years_with_data,:,:]),
+        variable_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_jja[:,:,years_with_data,:,:])
     },
     coords={
         'method':     (['method'],methods),
         'notes':      (['notes'],notes),
         'ens_global': (['ens_global'],ens_global,{'description':'ensemble members'}),
         'ens_spatial':(['ens_spatial'],ens_spatial,{'description':'ensemble members'}),
-        'age':        (['age'],age,{'units':'yr BP'}),
+        'age':        (['age'],age[years_with_data],{'units':'yr BP'}),
         'lat':        (['lat'],lat,{'units':'degrees_north'}),
         'lon':        (['lon'],lon,{'units':'degrees_east'}),
         'lat_bounds': (['lat_bounds'],lat_bounds,{'units':'degrees_north'}),
@@ -216,16 +223,16 @@ data_xarray_output_jja = xr.Dataset(
 
 data_xarray_output_djf = xr.Dataset(
     {
-        variable_txt+'_global':(['method','ens_global','age'],             var_global_djf),
-        variable_txt+'_mean':  (['method','age','lat','lon'],              var_djf),
-        variable_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_djf)
+        variable_txt+'_global':(['method','ens_global','age'],             var_global_djf[:,:,years_with_data]),
+        variable_txt+'_mean':  (['method','age','lat','lon'],              var_djf[:,years_with_data,:,:]),
+        variable_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_djf[:,:,years_with_data,:,:])
     },
     coords={
         'method':     (['method'],methods),
         'notes':      (['notes'],notes),
         'ens_global': (['ens_global'],ens_global,{'description':'ensemble members'}),
         'ens_spatial':(['ens_spatial'],ens_spatial,{'description':'ensemble members'}),
-        'age':        (['age'],age,{'units':'yr BP'}),
+        'age':        (['age'],age[years_with_data],{'units':'yr BP'}),
         'lat':        (['lat'],lat,{'units':'degrees_north'}),
         'lon':        (['lon'],lon,{'units':'degrees_east'}),
         'lat_bounds': (['lat_bounds'],lat_bounds,{'units':'degrees_north'}),
