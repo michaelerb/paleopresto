@@ -2,9 +2,13 @@
 
 This directory contains tutorials and other code for the PReSto project. When launched, the PReSto website will be located at [paleopresto.com](https://paleopresto.com/).
 
-## Use this code
+## Tutorials
 
-These scripts process paleoclimate data to create images and html code for the paleopresto.com website.
+The "tutorials" directory contains examples and instructions for analyzing paleoclimate data
+
+## Paleoclimate data processing
+
+The other directories contain scripts to create images and html code for the paleopresto.com website.
 
 ### Data
 
