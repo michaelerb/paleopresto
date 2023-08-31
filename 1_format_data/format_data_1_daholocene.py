@@ -27,6 +27,12 @@ lon = data_xarray['lon'].values
 
 #%% CALCULATIONS
 
+# Compute the global mean
+lat_weights = np.cos(np.deg2rad(data_xarray.lat))
+var_global = data_xarray[load_var_txt].weighted(lat_weights).mean(('longitude','latitude')).values[:,0,:]
+data_xarray.close()
+
+
 # Calculate lat and lon bounds
 lat_bounds,lon_bounds = utils.bounding_latlon(lat,lon)
 

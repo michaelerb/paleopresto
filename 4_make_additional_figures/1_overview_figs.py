@@ -23,6 +23,7 @@ save_instead_of_plot = True
 #dataset_txt = 'neukom2019';  version_txt = '1_0_0'
 #dataset_txt = 'era20c';      version_txt = '1_0_0'
 #dataset_txt = 'era5';        version_txt = '1_0_0'
+#dataset_txt = 'phyda';       version_txt = '1_0_0'
 dataset_txt = sys.argv[1];   version_txt = sys.argv[2]
 
 
@@ -53,6 +54,7 @@ if   dataset_txt == 'daholocene':  data_txt = 'Holocene Reconstruction'; x_range
 elif dataset_txt == 'lgmr':        data_txt = 'LGMR';                    x_range = [12000,0];   y_range = [-3,1.25];  maxval = 5; time_var = age;  time_txt = 'Age (yr BP)'; ref_txt = '0-1 ka';       line_weight = 3; fig_type = 'contourf'
 elif dataset_txt == 'kaufman2020': data_txt = 'Kaufman et al., 2020';    x_range = [12000,0];   y_range = [-3,1.25];  maxval = 5; time_var = age;  time_txt = 'Age (yr BP)'; ref_txt = '0-1 ka';       line_weight = 3; fig_type = 'pcolormesh'
 elif dataset_txt == 'lmr':         data_txt = 'LMR';                     x_range = [0,2000];    y_range = [-.5,.85];  maxval = 2; time_var = year; time_txt = 'Year (CE)';   ref_txt = '0-1 ka';       line_weight = 1; fig_type = 'contourf'
+elif dataset_txt == 'phyda':       data_txt = 'PHYDA';                   x_range = [0,2000];    y_range = [-.5,.85];  maxval = 2; time_var = year; time_txt = 'Year (CE)';   ref_txt = '0-1 ka';       line_weight = 1; fig_type = 'contourf'
 elif dataset_txt == 'neukom2019':  data_txt = 'Neukom et al., 2019';     x_range = [0,2000];    y_range = [-.5,.85];  maxval = 2; time_var = year; time_txt = 'Year (CE)';   ref_txt = '0-1 ka';       line_weight = 1; fig_type = 'contourf'
 elif dataset_txt == 'era20c':      data_txt = 'ERA-20C';                 x_range = [1900,2021]; y_range = [-.75,.75]; maxval = 2; time_var = year; time_txt = 'Year (CE)';   ref_txt = '1951-1980 CE'; line_weight = 1; fig_type = 'contourf'
 elif dataset_txt == 'era5':        data_txt = 'ERA5';                    x_range = [1900,2021]; y_range = [-.75,.75]; maxval = 2; time_var = year; time_txt = 'Year (CE)';   ref_txt = '1951-1980 CE'; line_weight = 1; fig_type = 'contourf'

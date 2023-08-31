@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a set of maps and time series for the visualizer webpage.
 #    author: Michael P. Erb
-#    date  : 5/8/2023
+#    date  : 7/20/2023
 #==============================================================================
 
 import sys
@@ -34,6 +34,9 @@ plt.style.use('ggplot')
 #dataset_txt = 'neukom2019'
 #dataset_txt = 'era20c'
 #dataset_txt = 'era5'
+#dataset_txt = 'nada'
+#dataset_txt = 'owda'
+#dataset_txt = 'phyda'
 dataset_txt = sys.argv[1]
 
 # Choose version
@@ -48,6 +51,7 @@ version_txt = sys.argv[2]
 #var_txt = 'd18Op'
 #var_txt = 'slp'
 #var_txt = 'winds'
+#var_txt = 'pdsi'
 var_txt = sys.argv[3]
 
 # Choose quantity
@@ -108,6 +112,24 @@ elif var_txt == 'slp':
     title_txt_bokeh = quantity_txt+' sea level pressure (hPa)'
     cmap            = 'PuOr_r'
     levels          = np.arange(-5,5.1,.5)
+elif var_txt == 'pdsi':
+    unit_txt        = 'pdsi'
+    html_unit_txt   = 'pdsi'
+    colorbar_txt    = quantity_txt+' Palmer Drought Severity Index (PDSI)'
+    title_txt_bokeh = quantity_txt+' PDSI'
+    cmap            = 'BrBG'
+    levels          = np.arange(-3,3.1,.25)
+elif var_txt == 'spei':
+    unit_txt        = 'spei'
+    html_unit_txt   = 'spei'
+    colorbar_txt    = quantity_txt+' Standardized Precip-Evap Index (SPEI)'
+    title_txt_bokeh = quantity_txt+' SPEI'
+    cmap            = 'BrBG'
+    levels          = np.arange(-1.5,1.6,.1)
+
+# For some variables, label fewer steps on the colorbar, so that text does not overlap
+if var_txt in ['precip','slp','pdsi','spei']: tick_levels = levels[::2]
+else: tick_levels = levels
 
 # Set some parameters by dataset
 if dataset_txt == 'daholocene':
@@ -115,12 +137,14 @@ if dataset_txt == 'daholocene':
     x_range      = [12000,0]
     ts_height    = 300
     ts_yrange    = [-5,1]
+    map_region   = 'global'
     #
 elif dataset_txt == 'holocenehydroclimate':
     dataset_name = 'Holocene Hydroclimate'
     x_range      = [12000,0]
     ts_height    = 300
     ts_yrange    = [-5,1]
+    map_region   = 'global'
     #
 elif dataset_txt == 'lgmr':
     dataset_name = 'LGMR'
@@ -128,12 +152,14 @@ elif dataset_txt == 'lgmr':
     ts_height    = 300
     if   var_txt == 'tas':   ts_yrange = [-30,5]
     elif var_txt == 'd18Op': ts_yrange = [-15,5]
+    map_region   = 'global'
     #
 elif dataset_txt == 'kaufman2020':
     dataset_name = 'Kaufman et al., 2020'
     ts_height    = 500
     x_range      = [12000,0]
     ts_yrange    = [-3,3]
+    map_region   = 'global'
     #
 elif dataset_txt == 'lmr':
     dataset_name = 'LMR'
@@ -141,24 +167,51 @@ elif dataset_txt == 'lmr':
     ts_height    = 300
     if   var_txt == 'tas':    ts_yrange = [-2,3]
     elif var_txt == 'precip': ts_yrange = [-2,2]
+    map_region   = 'global'
     #
 elif dataset_txt == 'neukom2019':
     dataset_name = 'Neukom et al., 2019'
     x_range      = [0,2000]
     ts_height    = 500
     ts_yrange    = [-2,3]
+    map_region   = 'global'
     #
 elif dataset_txt == 'era20c':
     dataset_name = 'ERA-20C'
     x_range      = [1900,2010]
     ts_height    = 300
     ts_yrange    = [-2,3]
+    map_region   = 'global'
     #
 elif dataset_txt == 'era5':
     dataset_name = 'ERA5'
     x_range      = [1959,2022]
     ts_height    = 300
     ts_yrange    = [-2,3]
+    map_region   = 'global'
+    #
+elif dataset_txt == 'nada':
+    dataset_name = 'North American Drought Atlas'
+    x_range      = [0,2005]
+    ts_height    = 300
+    ts_yrange    = [-10,10]
+    map_region   = 'north_america'
+    #
+elif dataset_txt == 'owda':
+    dataset_name = 'Old World Drought Atlas'
+    x_range      = [0,2012]
+    ts_height    = 300
+    ts_yrange    = [-10,10]
+    map_region   = 'europe'
+    #
+elif dataset_txt == 'phyda':
+    dataset_name = 'Paleo Hydrodynamics Data Assimilation product'
+    x_range      = [1,2000]
+    ts_height    = 300
+    if   var_txt == 'tas':  ts_yrange = [-3,3]
+    elif var_txt == 'pdsi': ts_yrange = [-5,5]
+    elif var_txt == 'spei': ts_yrange = [-3,3]
+    map_region   = 'global'
 
 # Set some variables for the holocenehydroclimate dataset
 if dataset_txt == 'holocenehydroclimate':
@@ -170,21 +223,28 @@ if dataset_txt == 'holocenehydroclimate':
     ts_yrange       = [-4,4]
 
 # Set some miscellaneous parameters
-if   dataset_txt in ['era20c','era5']:    time_var = year; time_name_txt = 'Year'; time_unit_txt = 'CE';    ref_period_txt = '1951-1980 CE'
-elif dataset_txt in ['lmr','neukom2019']: time_var = year; time_name_txt = 'Year'; time_unit_txt = 'CE';    ref_period_txt = '0-1 ka'
-else:                                     time_var = age;  time_name_txt = 'Age';  time_unit_txt = 'yr BP'; ref_period_txt = '0-1 ka'
-if   dataset_txt == 'kaufman2020':          map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
+if   dataset_txt in ['era20c','era5']:            time_var = year; time_name_txt = 'Year'; time_unit_txt = 'CE';    ref_period_txt = '1951-1980 CE'
+elif dataset_txt in ['lmr','neukom2019','phyda']: time_var = year; time_name_txt = 'Year'; time_unit_txt = 'CE';    ref_period_txt = '0-1 ka'
+elif dataset_txt in ['nada','owda']:              time_var = year; time_name_txt = 'Year'; time_unit_txt = 'CE';    ref_period_txt = 'none'
+else:                                             time_var = age;  time_name_txt = 'Age';  time_unit_txt = 'yr BP'; ref_period_txt = '0-1 ka'
+if   dataset_txt == 'kaufman2020':          map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False; pcolormesh_limit = 2
+elif dataset_txt in ['nada','owda']:        map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False; pcolormesh_limit = 5
 elif dataset_txt == 'holocenehydroclimate': map_type = 'regions_ipcc_ar6'; make_gridded_ts = False; make_regional_ts = True
-else:                                       map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True
+else:                                       map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True  #TODO: Should NADA & OWDA use these options?
+
+# Datasets without ensembles, or with issues
+# LMR (expect for tas) and ERA20C do not have ensemble values. ERA5's ensembles don't look too helpful. PHYDA has 5th and 95th percentiles
+datasets_skip_ensembles = ['lmr','era20c','era5','phyda']
 
 
 #%% Process data
 # Remove the chosen reference period from the reconstruction
 if   ref_period_txt == '0-1 ka':       ind_ref = np.where((age >= 0)     & (age < 1000))[0]
 elif ref_period_txt == '1951-1980 CE': ind_ref = np.where((year >= 1951) & (age <= 1980))[0]
-var_ens    = var_ens    - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,None,:,:]
-var_mean   = var_mean   - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,:,:]
-var_global = var_global - np.nanmean(np.nanmean(var_global[:,:,ind_ref],axis=2),axis=1)[:,None,None]
+if ref_period_txt != 'none':
+    var_ens    = var_ens    - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,None,:,:]
+    var_mean   = var_mean   - np.nanmean(var_mean[:,ind_ref,:,:],axis=1)[:,None,:,:]
+    var_global = var_global - np.nanmean(np.nanmean(var_global[:,:,ind_ref],axis=2),axis=1)[:,None,None]
 
 # Compute the mean of all methods
 var_mean_allmethods = np.nanmean(var_mean,axis=0)
@@ -214,24 +274,26 @@ ar6_abbreviations = ar6_all.abbrevs
 # If the reconstruction uses the IPCC AR6 regions, get some data about regions
 if map_type == 'regions_ipcc_ar6': regions_all = lat
 
-
+"""
 #%% MAPS
 # Make a map of values
 print('Step 1: Making maps: '+str(len(time_var)))
 i=0;time=time_var[i]
 for i,time in enumerate(time_var):
     #
+    #
+    #%%
     # Make a text box to show on the website
     plt.figure(figsize=(4,2))
     ax1 = plt.subplot2grid((1,1),(0,0))
     ax1.axis('off')
-    if (dataset_txt == 'era20c') or ((dataset_txt == 'lmr') & (var_txt != 'tas')): pass  # LMR (expect for tas) and ERA20C do not have ensemble values
+    if dataset_txt in datasets_skip_ensembles: pass
     else: ax1.fill_between(time_var,np.percentile(globalmean_all_ens,2.5,axis=0),np.percentile(globalmean_all_ens,97.5,axis=0),color='gray',alpha=0.25)
     ax1.plot(time_var,globalmean_all)
     ax1.axvline(x=time,color='gray',alpha=1,linestyle='--',linewidth=1)
     ax1.axhline(y=0,color='gray',alpha=0.5,linestyle='--',linewidth=1)
     ax1.set_xlim(x_range[0],x_range[1]+(x_range[1]-x_range[0])/100)
-    if dataset_txt == 'holocenehydroclimate': chosen_txt = 'Mean'
+    if (dataset_txt in ['holocenehydroclimate']) or (var_txt in ['pdsi','spei']): chosen_txt = 'Mean'
     else: chosen_txt = 'Global'
     ax1.set_title(chosen_txt+': '+str('{:.2f}'.format(globalmean_all[i]))+' '+unit_txt,fontsize=18)
     if save_instead_of_plot:
@@ -245,14 +307,15 @@ for i,time in enumerate(time_var):
     # Make the primary map to show
     plt.figure(figsize=(10,10))
     ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
-    #ax1.set_extent([-180,180,-85,85],crs=ccrs.PlateCarree())
-    #ax1.set_extent([-179.9,179.9,-85,85],crs=ccrs.PlateCarree())
+    if   map_region == 'global':        ax1.set_extent([-179.99,179.99,-85,85],crs=ccrs.PlateCarree()); extra_txt_x = 0;       extra_txt_y = -82;   grid_x = 60; grid_y = 30
+    elif map_region == 'north_america': ax1.set_extent([-171.5,-52,-5,84],     crs=ccrs.PlateCarree()); extra_txt_x = -111.75; extra_txt_y = 7.5;   grid_x = 20; grid_y = 10
+    elif map_region == 'europe':        ax1.set_extent([-13,46,26,72],         crs=ccrs.PlateCarree()); extra_txt_x = 16.5;    extra_txt_y = 31.25; grid_x = 10; grid_y = 5
     if map_type == 'contourf':
         var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_mean_allmethods[i,:,:],coord=lon)
         map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
-        colorbar = plt.colorbar(map1,ticks=levels,orientation='horizontal',ax=ax1,fraction=0.01,pad=-0.07)
+        colorbar = plt.colorbar(map1,ticks=tick_levels,orientation='horizontal',ax=ax1,fraction=0.01,pad=-0.07)
     elif map_type == 'pcolormesh':
-        map1 = ax1.pcolormesh(lon_bounds_2d,lat_bounds_2d,var_mean_allmethods[i,:,:],cmap=cmap,vmin=-2,vmax=2,transform=ccrs.PlateCarree())
+        map1 = ax1.pcolormesh(lon_bounds_2d,lat_bounds_2d,var_mean_allmethods[i,:,:],cmap=cmap,vmin=-pcolormesh_limit,vmax=pcolormesh_limit,transform=ccrs.PlateCarree())
         colorbar = plt.colorbar(map1,orientation='horizontal',ax=ax1,fraction=0.01,pad=-0.07)
     elif map_type == 'regions_ipcc_ar6':
         norm = matplotlib.colors.Normalize(vmin=-2,vmax=2,clip=True)
@@ -270,11 +333,12 @@ for i,time in enumerate(time_var):
     if np.isnan(var_mean_allmethods[i,:,:]).all(): ax1.text(0.5,0.5,'Please select another year.',fontsize=12,ha='center',va='center',transform=ax1.transAxes)
     ax1.coastlines()
     gl = ax1.gridlines(color='gray',linestyle=':',draw_labels=False)
-    gl.ylocator = mticker.FixedLocator(np.arange(-90,91,30))
-    gl.xlocator = mticker.FixedLocator(np.arange(-180,181,60))
-    colorbar.set_label(colorbar_txt+', rel. '+ref_period_txt,fontsize=6)
+    gl.ylocator = mticker.FixedLocator(np.arange(-90,91,grid_y))
+    gl.xlocator = mticker.FixedLocator(np.arange(-180,181,grid_x))
+    if ref_period_txt == 'none': colorbar.set_label(colorbar_txt,fontsize=6)
+    else: colorbar.set_label(colorbar_txt+', rel. '+ref_period_txt,fontsize=6)
     colorbar.ax.tick_params(labelsize=3)
-    plt.text(0,-82,dataset_name+', v.'+version_txt.replace('_','.')+', '+str(time_var[i])+' '+time_unit_txt,fontsize=7,horizontalalignment='center',transform=ccrs.PlateCarree())
+    plt.text(extra_txt_x,extra_txt_y,dataset_name+', v.'+version_txt.replace('_','.')+', '+str(time_var[i])+' '+time_unit_txt,fontsize=7,horizontalalignment='center',transform=ccrs.PlateCarree())
     #
     if save_instead_of_plot:
         plt.savefig(output_dir+'map_'+filename_txt+'_'+str(int(np.ceil(time))).zfill(5)+'.png',dpi=150,format='png',bbox_inches='tight',pad_inches=0.0)
@@ -287,19 +351,22 @@ for i,time in enumerate(time_var):
 i=0;time=time_var[i]
 plt.figure(figsize=(10,10))
 ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
-#ax1.set_extent([-180,180,-85,85],crs=ccrs.PlateCarree())
+if   map_region == 'global':        ax1.set_extent([-179.99,179.99,-85,85],crs=ccrs.PlateCarree())
+elif map_region == 'north_america': ax1.set_extent([-171.5,-52,-5,84],     crs=ccrs.PlateCarree())
+elif map_region == 'europe':        ax1.set_extent([-13,46,26,72],         crs=ccrs.PlateCarree())
 if map_type == 'contourf':
     var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_mean_allmethods[i,:,:],coord=lon)
     map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
-    colorbar = plt.colorbar(map1,ticks=levels,orientation='horizontal',ax=ax1,fraction=0.08,pad=0.02)
+    colorbar = plt.colorbar(map1,ticks=tick_levels,orientation='horizontal',ax=ax1,fraction=0.08,pad=0.02)
 elif map_type == 'pcolormesh':
-    map1 = ax1.pcolormesh(lon_bounds_2d,lat_bounds_2d,var_mean_allmethods[i,:,:],cmap=cmap,vmin=-2,vmax=2,transform=ccrs.PlateCarree())
+    map1 = ax1.pcolormesh(lon_bounds_2d,lat_bounds_2d,var_mean_allmethods[i,:,:],cmap=cmap,vmin=-pcolormesh_limit,vmax=pcolormesh_limit,transform=ccrs.PlateCarree())
     colorbar = plt.colorbar(map1,orientation='horizontal',ax=ax1,fraction=0.08,pad=0.02)
 elif map_type == 'regions_ipcc_ar6':
     norm = matplotlib.colors.Normalize(vmin=-2,vmax=2,clip=True)
     colorbar = plt.colorbar(matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap),orientation='horizontal',ax=ax1,fraction=0.08,pad=0.02)
 plt.gca().set_visible(False)
-colorbar.set_label(colorbar_txt+', rel. '+ref_period_txt,fontsize=16)
+if ref_period_txt == 'none': colorbar.set_label(colorbar_txt,fontsize=16)
+else: colorbar.set_label(colorbar_txt+', rel. '+ref_period_txt,fontsize=16)
 colorbar.ax.tick_params(labelsize=12)
 
 if save_instead_of_plot:
@@ -307,18 +374,19 @@ if save_instead_of_plot:
     plt.close()
 else:
     plt.show()
-
+"""
 
 #%% GRID CALCULATIONS
 
 reduce_number_of_ts = True
 
+# Select the approximate grid to generate time series figures for
+if   map_region == 'global':        lat_grid_desired = 5; lon_grid_desired = 5
+elif map_region == 'north_america': lat_grid_desired = 2; lon_grid_desired = 2
+elif map_region == 'europe':        lat_grid_desired = 1; lon_grid_desired = 1
+
 # If requested, figure out a reduced set of indices for generating figures
 if reduce_number_of_ts & (dataset_txt not in ['holocenehydroclimate','kaufman2020']):
-    #
-    # Select the approximate grid to generate time series figures for
-    lat_grid_desired = 5
-    lon_grid_desired = 5
     #
     # Get the indicies for points along the approximate grid
     lat_grid_mean = np.abs(np.mean(lat[1:]-lat[:-1]))
@@ -385,7 +453,8 @@ def make_time_series(var_ens_to_plot,var_mean_to_plot,location_title_txt,outputf
     p1.y_range.end   = ts_yrange[1]
     #
     for k,method_chosen in enumerate(method):
-        if dataset_txt in ['lmr','era20c']: pass  # LMR and ERA20C do not have ensemble values
+        if dataset_txt == 'phyda': p1.varea(time_var,var_ens_to_plot[k,0,:],var_ens_to_plot[k,2,:],color=method_color_list[k],alpha=0.1,legend_label=method_chosen)
+        elif dataset_txt in datasets_skip_ensembles: pass
         else: p1.varea(time_var,np.percentile(var_ens_to_plot[k,:,:],2.5,axis=0),np.percentile(var_ens_to_plot[k,:,:],97.5,axis=0),color=method_color_list[k],alpha=0.1,legend_label=method_chosen)
         p1.line(time_var,var_mean_to_plot[k,:],color=method_color_list[k],line_width=1,legend_label=method_chosen)
     line0 = Span(location=0,dimension='width',line_color='gray',line_width=1)
@@ -402,7 +471,7 @@ def make_time_series(var_ens_to_plot,var_mean_to_plot,location_title_txt,outputf
     hover = p1.select_one(HoverTool)
     hover.tooltips = [
             (time_name_txt,'@x{int} '+time_unit_txt),
-            ('Temp','@y \u00B0C'),
+            (var_txt,'@y '+html_unit_txt),
             ]
     hover.mode='vline'
     #
@@ -476,7 +545,7 @@ if make_regional_ts:
     for j in range(n_regions):
         #
         # Make an interactive time series with bokeh
-        var_ens            = var_regional_ens[:,:,:,j]
+        var_ens_to_plot    = var_regional_ens[:,:,:,j]
         var_mean_to_plot   = var_regional[:,:,j]
         location_title_txt = ' for region '+ar6_all.abbrevs[j]+' ('+ar6_all.names[j]+')'
         outputfile_txt     = 'ts_'+filename_txt+'_region_'+ar6_all.abbrevs[j]+'.html'
