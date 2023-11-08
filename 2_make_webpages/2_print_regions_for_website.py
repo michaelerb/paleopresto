@@ -79,16 +79,17 @@ for i in range(n_regions):
     region_abbrev = str(ar6_all.abbrevs[i])
     region_name   = str(ar6_all.names[i])
     region_shape  = ar6_all[i]._polygon
-    region_abbrev_all.append(region_abbrev)
     if region_shape.geom_type == 'Polygon':
         region_lons,region_lats = region_shape.exterior.coords.xy
         print_coords(region_lons,region_lats)
         counter += 1
+        region_abbrev_all.append(region_abbrev)
     elif region_shape.geom_type == 'MultiPolygon':
         for subregion_shape in region_shape.geoms:
             region_lons,region_lats = subregion_shape.exterior.coords.xy
             print_coords(region_lons,region_lats)
             counter += 1
+            region_abbrev_all.append(region_abbrev)
     else: print(' === ERROR: Variable is not a Polygon or MultiPolygon ===')
 
 # Format the list of regions

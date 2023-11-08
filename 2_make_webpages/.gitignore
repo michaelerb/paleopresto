@@ -1,5 +1,6 @@
 run_script.sh
 output.txt
 latlon_*
+figures/*
 more/*
 __pycache__/*
