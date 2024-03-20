@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the ERA-20C reanalysis.
 #    author: Michael P. Erb
-#    date  : 9/12/2023
+#    date  : 3/19/2024
 #=============================================================================
 
 import sys
@@ -31,7 +31,6 @@ var_spatial_monthly = data_xarray['2T_GDS4_SFC_S123'].values
 lon = data_xarray['g4_lon_2'].values
 lat = data_xarray['g4_lat_1'].values
 #time_str = handle['initial_time0'].values
-
 years = np.arange(1900,2011,1)
 age = 1950-years
 
@@ -42,6 +41,10 @@ data_xarray.close()
 
 
 #%% CALCULATIONS
+
+# Convert temperature from K to degC
+var_spatial_monthly = var_spatial_monthly-273.15
+var_global_monthly  = var_global_monthly-273.15
 
 # Reshape the data
 nyears = int(var_spatial_monthly.shape[0]/12)
@@ -90,7 +93,7 @@ lat_bounds,lon_bounds = utils.bounding_latlon(lat,lon)
 var_spatial_mean = np.expand_dims(var_spatial_mean,axis=0)
 var_global_mean  = np.expand_dims(var_global_mean, axis=0)
 
-# ERA-20C only has one ensemble member, so the mean and the ensemble member are the same. #TOOD: Is this true?
+# ERA-20C only has one ensemble member, so the mean and the ensemble member are set to be the same.
 var_spatial_members = np.expand_dims(var_spatial_mean,axis=1)
 var_global_members  = np.expand_dims(var_global_mean, axis=1)
 
@@ -100,7 +103,7 @@ ens_spatial = np.array([1])
 ens_global = ens_spatial
 
 # If this data can't be reformatted to the standard format, add a note here 
-notes = ['ERA-20C only has one ensemble member, so the mean and the ensemble member are the same.']
+notes = ['ERA-20C only has one ensemble member, so the mean and the ensemble member are set to be the same.']
 
 # Check the shape of the variables
 print(var_spatial_members.shape)

@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a set of maps and time series for the visualizer webpage.
-#    author: Michael P. Erb
-#    date  : 3/19/2024
+#    author: Michael Erb
+#    date  : 2/29/2024
 #==============================================================================
 
 import os
@@ -28,52 +28,32 @@ save_instead_of_plot = True
 plt.style.use('ggplot')
 starttime_total = timekeeping.time() # Start timer
 
-# Choose dataset, version, variable, and quantity
-#dataset_txt = 'daholocene';    version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'lgmr';          version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'lgmr';          version_txt = '1_0_0'; var_txt = 'd18Op';  quantity_txt = 'Annual'
-#dataset_txt = 'kaufman2020';   version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'holocenehydro'; version_txt = '1_0_0'; var_txt = 'hydro';  quantity_txt = 'Annual'
-#dataset_txt = 'holocenehydro'; version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'lmr';           version_txt = '2_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'lmr';           version_txt = '2_0_0'; var_txt = 'precip'; quantity_txt = 'Annual'
-#dataset_txt = 'lmr';           version_txt = '2_1_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'lmr';           version_txt = '2_1_0'; var_txt = 'precip'; quantity_txt = 'Annual'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'JJA'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'DJF'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'Annual'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'DJF'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'spei';   quantity_txt = 'Annual'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'spei';   quantity_txt = 'JJA'
-#dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'spei';   quantity_txt = 'DJF'
-#dataset_txt = 'neukom2019';    version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'nada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
-#dataset_txt = 'owda';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
-#dataset_txt = 'era20c';        version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'era20c';        version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'JJA'
-#dataset_txt = 'era20c';        version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'DJF'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'JJA'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'DJF'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'precip'; quantity_txt = 'Annual'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'precip'; quantity_txt = 'JJA'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'precip'; quantity_txt = 'DJF'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'slp';    quantity_txt = 'Annual'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'slp';    quantity_txt = 'JJA'
-#dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'slp';    quantity_txt = 'DJF'
-dataset_txt = sys.argv[1]; version_txt = sys.argv[2]; var_txt = sys.argv[3]; quantity_txt = sys.argv[4]
+
+# Set directories
+#data_dir = '/projects/pd_lab/data/paleoclimate_reconstructions/presto_reconstructions/17056032413566754_HoloceneDA/'
+#data_dir = '/projects/pd_lab/data/paleoclimate_reconstructions/presto_reconstructions/1705603319440696_GraphEM/test-run-graphem-cfg/'
+#output_dir = '/projects/pd_lab/mpe32/figures_presto/'
+
+data_dir   = sys.argv[1]
+output_dir = sys.argv[2]
 
 
 #%% LOAD DATA
 
-data_dir   = '/projects/pd_lab/data/paleoclimate_reconstructions/presto_format/'
-output_dir = '/projects/pd_lab/mpe32/figures_presto/'+dataset_txt+'/'
-if os.path.exists(output_dir) == False: os.makedirs(output_dir)
+var_txt      = 'tas'
+quantity_txt = 'Annual'
+if   'HoloceneDA' in data_dir: dataset_txt = 'daholocene'; version_txt = data_dir.split('_HoloceneDA')[0].split('/')[-1]
+elif 'GraphEM'    in data_dir: dataset_txt = 'graphem';    version_txt = data_dir.split('_GraphEM')[0].split('/')[-1]
 filename_txt = dataset_txt+'_v'+version_txt+'_'+var_txt+'_'+quantity_txt.lower()
-print('===== LOADING '+filename_txt+' =====')
+output_dir_full = output_dir+'viz_'+dataset_txt+'_'+version_txt+'/'
+if os.path.exists(output_dir_full) == False: os.makedirs(output_dir_full)
+output_dir_full = output_dir_full+'assets/'
+if os.path.exists(output_dir_full) == False: os.makedirs(output_dir_full)
+output_dir_full = output_dir_full+dataset_txt+'/'
+if os.path.exists(output_dir_full) == False: os.makedirs(output_dir_full)
+print(' ===== STARTING script 2: Making maps and time series for '+str(filename_txt)+' =====')
 
+print('Loading '+filename_txt)
 data_xarray = xr.open_dataset(data_dir+filename_txt+'.nc')
 var_spatial_mean    = data_xarray[var_txt+'_spatial_mean']
 var_spatial_members = data_xarray[var_txt+'_spatial_members']
@@ -104,7 +84,7 @@ else:                 time_name_txt = 'Age';  time_var = age;  time_unit_txt = '
 if   var_txt == 'tas':    variable_name = 'temperature';                    cmap = 'bwr';    levels = np.array([-10,-5,-2,-1,-.5,-.2,-.1,0,.1,.2,.5,1,2,5,10])
 elif var_txt == 'd18Op':  variable_name = 'd18Op';                          cmap = 'PiYG';   levels = np.array([-10,-5,-2,-1,-.5,-.2,-.1,0,.1,.2,.5,1,2,5,10])
 elif var_txt == 'hydro':  variable_name = 'hydroclimate';                   cmap = 'BrBG';   levels = np.array([-10,-5,-2,-1,-.5,-.2,-.1,0,.1,.2,.5,1,2,5,10])
-elif var_txt == 'precip': variable_name = 'precipitation';                  cmap = 'BrBG';   levels = np.arange(-2,2.1,.2)
+elif var_txt == 'precip': variable_name = 'precipitation';                  cmap = 'BrBG';   levels = np.arange(-1,1.1,.1)
 elif var_txt == 'slp':    variable_name = 'sea level pressure';             cmap = 'PuOr_r'; levels = np.arange(-5,5.1,.5)
 elif var_txt == 'pdsi':   variable_name = 'Palmer Drought Severity Index';  cmap = 'BrBG';   levels = np.arange(-5,5.1,.5)
 elif var_txt == 'spei':   variable_name = 'Standardized Precip-Evap Index'; cmap = 'BrBG';   levels = np.arange(-1.5,1.6,.1)
@@ -177,7 +157,7 @@ n_lon         = var_spatial_members.shape[4]
 if ('mean' in list(ens_spatial)) or (list(ens_spatial) == [1]):
     # Mean found
     print('Spatial bounds - Mean found')
-    spatial_uncertainty_txt = 'none shown'; skip_spatial_ens = True
+    spatial_uncertainty_txt = 'none'; skip_spatial_ens = True
     var_spatial_lowerbound = var_spatial_mean
     var_spatial_upperbound = var_spatial_mean
     #
@@ -209,7 +189,7 @@ elif ('p5' in list(ens_spatial)) and ('p95' in list(ens_spatial)):
 else:
     # Ensemble members unclear
     print('Spatial bounds - WARNING: Ensemble members unclear. Using means. Ensembles=',ens_spatial,var_spatial_members.shape)
-    spatial_uncertainty_txt = 'none shown'; skip_spatial_ens = True
+    spatial_uncertainty_txt = 'none'; skip_spatial_ens = True
     var_spatial_lowerbound = var_spatial_mean
     var_spatial_upperbound = var_spatial_mean
 
@@ -310,9 +290,10 @@ if map_type == 'regions_ipcc_ar6': regions_all = lat
 
 #%% MAPS
 # Make a map of values
-print('Step 1: Making maps: '+str(len(time_var)))
+print('Step 1: Making maps and info panels. N='+str(len(time_var))+' each')
 i=0;time=time_var[i]
 for i,time in enumerate(time_var):
+    print('Processing: '+str(i+1)+'/'+str(len(time_var)))
     #
     #%%
     # Make a text box to show on the website
@@ -327,7 +308,7 @@ for i,time in enumerate(time_var):
     ax1.set_xlim(time_start,time_end+(time_end-time_start)/100)
     ax1.set_title('Mean : '+str('{:.2f}'.format(var_global_mean_allmethods[i]))+' '+info_unit_txt,fontsize=18)
     if save_instead_of_plot:
-        plt.savefig(output_dir+'info_'+filename_txt+'_'+str(int(np.ceil(time))).zfill(5)+'.png',dpi=50,format='png',bbox_inches='tight')
+        plt.savefig(output_dir_full+'info_'+filename_txt+'_'+str(int(np.ceil(time))).zfill(5)+'.png',dpi=50,format='png',bbox_inches='tight')
         plt.close()
     else:
         plt.show()
@@ -371,13 +352,14 @@ for i,time in enumerate(time_var):
     plt.text(extra_txt_x,extra_txt_y,dataset_name+', v.'+version_txt.replace('_','.')+', '+str(time_var[i])+' '+time_unit_txt,fontsize=7,horizontalalignment='center',transform=ccrs.PlateCarree())
     #
     if save_instead_of_plot:
-        plt.savefig(output_dir+'map_'+filename_txt+'_'+str(int(np.ceil(time))).zfill(5)+'.png',dpi=150,format='png',bbox_inches='tight',pad_inches=0.0)
+        plt.savefig(output_dir_full+'map_'+filename_txt+'_'+str(int(np.ceil(time))).zfill(5)+'.png',dpi=150,format='png',bbox_inches='tight',pad_inches=0.0)
         plt.close()
     else:
         plt.show()
 
 
 #%% COLORBAR
+print('Step 2: Making a colorbar. N=1')
 i=0;time=time_var[i]
 plt.figure(figsize=(10,10))
 ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
@@ -400,7 +382,7 @@ else: colorbar.set_label(colorbar_txt+', rel. '+ref_period,fontsize=16)
 colorbar.ax.tick_params(labelsize=12)
 
 if save_instead_of_plot:
-    plt.savefig(output_dir+'colorbar_'+filename_txt+'.png',dpi=150,format='png',bbox_inches='tight')
+    plt.savefig(output_dir_full+'colorbar_'+filename_txt+'.png',dpi=150,format='png',bbox_inches='tight')
     plt.close()
 else:
     plt.show()
@@ -410,11 +392,13 @@ else:
 
 # Subset the grid
 lat_string,lon_string,j_for_ts,i_for_ts,lon_neg = functions_presto.select_latlons(lat,lon,map_region,dataset_txt)
-    
+
+"""
 # Save the latitudes and longitudes to a file
 with open('latlon_'+filename_txt+'.txt','w') as f:
     f.write(lat_string+'\n')
     f.write(lon_string)
+"""
 
 
 #%% TIME SERIES FUNCTION
@@ -462,7 +446,7 @@ def make_time_series(var_mean_to_plot,var_lowerbound_to_plot,var_upperbound_to_p
     #
     # Save as html
     html = file_html(p1,CDN,outputfile_txt)
-    output_file = open(output_dir+outputfile_txt,'w')
+    output_file = open(output_dir_full+outputfile_txt,'w')
     output_file.write(html)
     output_file.close()
 
@@ -479,9 +463,12 @@ method_color_list = ['black','royalblue','salmon','olive','orange','darkseagreen
 # Make a timeseries at every location
 if make_gridded_ts:
     j,i = 0,0
+    counter = 0
     n_total = len(j_for_ts)*len(i_for_ts)
-    print('Step 2: Making time series at points: '+str(n_total))
+    print('Step 3: Making time series at selected points. N='+str(n_total))
     for j in j_for_ts:
+        counter += 1
+        print('Processing: '+str(counter)+'/'+str(len(j_for_ts)))
         for i in i_for_ts:
             #
             # Make an interactive time series with bokeh
@@ -531,10 +518,10 @@ if make_regional_ts:
     #
     #
     ### Make interactive regional time series plots with bokeh
-    print('Step 3: Making time series for regions: '+str(len(ar6_all.abbrevs)))
+    print('Step 4: Making time series for regions. N='+str(len(ar6_all.abbrevs)))
     nans_to_plot = np.zeros((n_methods,n_time)); nans_to_plot[:] = np.nan
     for j,abbrev_selected in enumerate(ar6_all.abbrevs):
-        print(j,abbrev_selected)
+        print('Processing: '+str(j+1)+'/'+str(len(ar6_all.abbrevs))+': '+abbrev_selected)
         #
         # Set some parameters
         location_title_txt = ' for region '+ar6_all.abbrevs[j]+' ('+ar6_all.names[j]+')'
@@ -555,6 +542,7 @@ if make_regional_ts:
         make_time_series(var_mean_to_plot,var_lowerbound_to_plot,var_upperbound_to_plot,location_title_txt,outputfile_txt,text_color)
 
 endtime_total = timekeeping.time()  # End timer
-print('=== FINISHED '+filename_txt+'. Total time: '+str('%1.2f' % ((endtime_total-starttime_total)/60))+' minutes ===')
 
+print(' ===== FINISHED script 2: Making maps and time series saved to: '+output_dir_full+' =====')
+print('Total time: '+str('%1.2f' % ((endtime_total-starttime_total)/60))+' minutes')
 

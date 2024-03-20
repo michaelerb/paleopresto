@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the ERA5 reanalysis.
 #    author: Michael P. Erb
-#    date  : 9/12/2023
+#    date  : 3/19/2024
 #=============================================================================
 
 import sys
@@ -13,139 +13,122 @@ import calendar
 
 #%% SETTINGS
 
-var_txt = 'tas'
+#var_txt = 'tas'
 #var_txt = 'precip'
 #var_txt = 'slp'
-#var_txt = 'u10'
-#var_txt = 'v10'
-quantity_txt = 'annual'
+#quantity_txt = 'annual'
 #quantity_txt = 'jja'
 #quantity_txt = 'djf'
-#var_txt = sys.argv[1]; quantity_txt = sys.argv[2]
+var_txt = sys.argv[1]; quantity_txt = sys.argv[2]
 
 
 #%% LOAD DATA
-# Note: data can be downloaded at: https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview
+# Note: data can be downloaded at: https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=form
 
-if   var_txt == 'tas':    file_var_txt = 't2m';         load_var_txt = 't2m'
-elif var_txt == 'precip': file_var_txt = 'totalprecip'; load_var_txt = 'tp'
-elif var_txt == 'slp':    file_var_txt = 'msl';         load_var_txt = 'msl'
-elif var_txt == 'u10':    file_var_txt = 'u10';         load_var_txt = 'u10'
-elif var_txt == 'v10':    file_var_txt = 'v10';         load_var_txt = 'v10'
+if   var_txt == 'tas':    file_var_txt = 't2m'
+elif var_txt == 'precip': file_var_txt = 'tp'
+elif var_txt == 'slp':    file_var_txt = 'msl'
 
 print('=== Processing ERA5 ===')
 
-# Load data
+# Load mean data
 data_dir = '/projects/pd_lab/data/modern_datasets/ERA5/'
 data_xarray = xr.open_dataset(data_dir+'era5_monthly_'+file_var_txt+'.nc')
-var  = data_xarray[load_var_txt].values[:,0,:,:]
-lon  = data_xarray['longitude'].values
-lat  = data_xarray['latitude'].values
-time = data_xarray['time'].values
+var_spatial_monthly = data_xarray[file_var_txt].values[:,0,:,:]
+lon = data_xarray['longitude'].values
+lat = data_xarray['latitude'].values
+month_lengths = data_xarray.time.dt.days_in_month.values
+
+# Compute the global mean for ensemble members
+lat_weights = np.cos(np.deg2rad(data_xarray.latitude))
+var_global_monthly = data_xarray[file_var_txt].weighted(lat_weights).mean(('longitude','latitude')).values[:,0]
 data_xarray.close()
 
-data_xarray = xr.open_dataset(data_dir+'era5_monthly_'+file_var_txt+'_ens.nc')
-var_ens = data_xarray[load_var_txt].values[:,0,:,:,:]
-lon_ens = data_xarray['longitude'].values
-lat_ens = data_xarray['latitude'].values
-
-years = np.arange(1959,2023,1)
+years = np.arange(1940,2024,1)
 age = 1950-years
 
 
 #%% CALCULATIONS 1
 
-# Change units
-if   var_txt == 'tas':    pass # Units: K
-elif var_txt == 'precip': var = var*1000; var_ens = var_ens*1000  # Convert precipitation from m/day to mm/day
-elif var_txt == 'slp':    var = var/100;  var_ens = var_ens/100   # Convert SLP from Pa to hPa
-elif var_txt == 'u10':    pass # Units: m/s
-elif var_txt == 'v10':    pass # Units: m/s
+# Remove months in incomplete years
+nmonths = var_spatial_monthly.shape[0]
+ind_end = int(np.floor(nmonths/12))*12
+var_spatial_monthly = var_spatial_monthly[:ind_end,:,:]
+month_lengths       = month_lengths[:ind_end]
+var_global_monthly  = var_global_monthly[:ind_end]
 
-# Compute the global mean
-lat_weights = np.cos(np.deg2rad(data_xarray.latitude))
-var_global = data_xarray[load_var_txt].weighted(lat_weights).mean(('longitude','latitude')).values[:,0,:]
-data_xarray.close()
+# Change units and set unit text
+if var_txt == 'tas':
+    # Convert temperature from K to degC
+    var_spatial_monthly = var_spatial_monthly-273.15
+    var_global_monthly  = var_global_monthly-273.15
+    unit_txt = 'degrees Celsius'
+elif var_txt == 'precip':
+    # Convert precipitation from m/day to mm/day
+    var_spatial_monthly = var_spatial_monthly*1000
+    var_global_monthly  = var_global_monthly*1000
+    unit_txt = 'mm/day'
+elif var_txt == 'slp':
+    # Convert SLP from Pa to hPa
+    var_spatial_monthly = var_spatial_monthly/100
+    var_global_monthly  = var_global_monthly/100
+    unit_txt = 'hPa'
 
-# Put the var_ens data on the same grid as var
-ind_lat = np.where(np.in1d(lat,lat_ens))[0]
-ind_lon = np.where(np.in1d(lon,lon_ens))[0]
-ntime = var.shape[0]
-nlat  = var.shape[1]
-nlon  = var.shape[2]
-n_ens = var_ens.shape[1]
-
-var_ens_new = np.zeros((ntime,n_ens,nlat,nlon)); var_ens_new[:] = np.nan
-for counter,i in enumerate(ind_lat):
-    #print(lat[i],lat_ens[counter])
-    var_ens_new[:,:,i,ind_lon] = var_ens[:,:,counter,:]
+# Get dimensions
+ntime = var_spatial_monthly.shape[0]
+nlat  = var_spatial_monthly.shape[1]
+nlon  = var_spatial_monthly.shape[2]
 
 
 #%% CALCULATIONS 2
 
-# Get number of days in each month
-month_lengths = data_xarray.time.dt.days_in_month.values
-
 # Reshape the data
 nyears = int(ntime/12)
-var_reshape        = np.reshape(var,(nyears,12,nlat,nlon)) 
-var_ens_reshape    = np.reshape(var_ens_new,(nyears,12,n_ens,nlat,nlon)) 
-var_global_reshape = np.reshape(var_global,(nyears,12,n_ens)) 
-ndays_reshape      = np.reshape(month_lengths,(nyears,12))
+var_spatial_monthly_reshape = np.reshape(var_spatial_monthly,(nyears,12,nlat,nlon))
+var_global_monthly_reshape  = np.reshape(var_global_monthly, (nyears,12))
+month_lengths_reshape       = np.reshape(month_lengths,      (nyears,12))
 
 # Compute the means weighted by the correct number of days in each month.
-var_season        = np.zeros((nyears,nlat,nlon));       var_season[:]        = np.nan
-var_ens_season    = np.zeros((nyears,n_ens,nlat,nlon)); var_ens_season[:]    = np.nan
-var_global_season = np.zeros((nyears,n_ens));           var_global_season[:] = np.nan
+var_spatial_mean = np.zeros((nyears,nlat,nlon)); var_spatial_mean[:] = np.nan
+var_global_mean  = np.zeros((nyears));           var_global_mean[:]  = np.nan
 i=0;year=years[i]
 for i,year in enumerate(years):
-    #
-    days_in_months = ndays_reshape[i,:]
-    #
-    # Annual-mean
+    days_in_months = month_lengths_reshape[i,:]
     if quantity_txt == 'annual':
-        var_season[i,:,:]       = np.average(var_reshape[i,:,:,:],      axis=0,weights=days_in_months)
-        var_ens_season[i,:,:,:] = np.average(var_ens_reshape[i,:,:,:,:],axis=0,weights=days_in_months)
-        var_global_season[i,:]  = np.average(var_global_reshape[i,:,:], axis=0,weights=days_in_months)
-    #
-    # JJA-mean
+        var_spatial_mean[i,:,:] = np.average(var_spatial_monthly_reshape[i,:,:,:],axis=0,weights=days_in_months)
+        var_global_mean[i]      = np.average(var_global_monthly_reshape[i,:],     axis=0,weights=days_in_months)
     if quantity_txt == 'jja':
-        var_season[i,:,:]       = np.average(var_reshape[i,[5,6,7],:,:],      axis=0,weights=days_in_months[[5,6,7]])
-        var_ens_season[i,:,:,:] = np.average(var_ens_reshape[i,[5,6,7],:,:,:],axis=0,weights=days_in_months[[5,6,7]])
-        var_global_season[i,:]  = np.average(var_global_reshape[i,[5,6,7],:], axis=0,weights=days_in_months[[5,6,7]])
-    #
-    # DJF-mean
+        var_spatial_mean[i,:,:] = np.average(var_spatial_monthly_reshape[i,[5,6,7],:,:],axis=0,weights=days_in_months[[5,6,7]])
+        var_global_mean[i]      = np.average(var_global_monthly_reshape[i,[5,6,7]],     axis=0,weights=days_in_months[[5,6,7]])
     if quantity_txt == 'djf':
         # Get DJF weights
-        try: weights_DJF = np.concatenate((np.expand_dims(days_in_months[11],axis=0),ndays_reshape[i+1,:2]),axis=0)
+        try: weights_DJF = np.concatenate((np.expand_dims(days_in_months[11],axis=0),month_lengths_reshape[i+1,:2]),axis=0)
         except:
             if calendar.isleap(year+1): weights_DJF = np.array([31,31,29])
             else:                       weights_DJF = np.array([31,31,28])
         #
-        data_D = np.expand_dims(var_reshape[i,11,:,:],axis=0)
-        try:    data_JF = var_reshape[i+1,[0,1],:,:]
+        data_D = np.expand_dims(var_spatial_monthly_reshape[i,11,:,:],axis=0)
+        try:    data_JF = var_spatial_monthly_reshape[i+1,[0,1],:,:]
         except: data_JF = np.zeros((2,nlat,nlon)); data_JF[:] = np.nan
         data_DJF = np.concatenate((data_D,data_JF),axis=0)
-        var_season[i,:,:] = np.average(data_DJF,axis=0,weights=weights_DJF)
+        var_spatial_mean[i,:,:] = np.average(data_DJF,axis=0,weights=weights_DJF)
         #
-        data_ens_D = np.expand_dims(var_ens_reshape[i,11,:,:,:],axis=0)
-        try:    data_ens_JF = var_ens_reshape[i+1,[0,1],:,:,:]
-        except: data_ens_JF = np.zeros((2,n_ens,nlat,nlon)); data_ens_JF[:] = np.nan
-        data_ens_DJF = np.concatenate((data_ens_D,data_ens_JF),axis=0)
-        var_ens_season[i,:,:,:] = np.average(data_ens_DJF,axis=0,weights=weights_DJF)
-        #
-        data_global_D = np.expand_dims(var_global_reshape[i,11,:],axis=0)
-        try:    data_global_JF = var_global_reshape[i+1,[0,1],:]
-        except: data_global_JF = np.zeros((2,n_ens)); data_global_JF[:] = np.nan
+        data_global_D = np.expand_dims(var_global_monthly_reshape[i,11],axis=0)
+        try:    data_global_JF = var_global_monthly_reshape[i+1,[0,1]]
+        except: data_global_JF = np.zeros((2)); data_global_JF[:] = np.nan
         data_global_DJF = np.concatenate((data_global_D,data_global_JF),axis=0)
-        var_global_season[i,:] = np.average(data_global_DJF,axis=0,weights=weights_DJF)
+        var_global_mean[i] = np.average(data_global_DJF,axis=0,weights=weights_DJF)
 
 
 #%% CALCULATIONS 3
 
 # Find the years with data in all 12 months
-var_season_mean = np.nanmean(np.nanmean(var_season,axis=2),axis=1)
-years_with_data = np.isfinite(var_season_mean)
+var_spatial_mean_mean = np.nanmean(np.nanmean(var_spatial_mean,axis=2),axis=1)
+years_with_data = np.isfinite(var_spatial_mean_mean)
+
+# Select only the years with data in all 12 months
+var_spatial_mean = var_spatial_mean[years_with_data,:,:]
+var_global_mean  = var_global_mean[years_with_data]
 
 
 #%% CALCULATIONS 4
@@ -154,19 +137,27 @@ years_with_data = np.isfinite(var_season_mean)
 lat_bounds,lon_bounds = utils.bounding_latlon(lat,lon)
 
 # Format the variables
-var_ens_season    = np.swapaxes(var_ens_season,   0,1)
-var_global_season = np.swapaxes(var_global_season,0,1)
-var_ens_season    = np.expand_dims(var_ens_season,   axis=0)
-var_season        = np.expand_dims(var_season,       axis=0)
-var_global_season = np.expand_dims(var_global_season,axis=0)
+var_spatial_mean = np.expand_dims(var_spatial_mean,axis=0)
+var_global_mean  = np.expand_dims(var_global_mean, axis=0)
+
+# The ensemble members for ERA5 have a different grid with half resolution. Since this is difficult to account for,
+# only the means is used. The mean and the ensemble member are set to be the same.
+var_spatial_members = np.expand_dims(var_spatial_mean,axis=1)
+var_global_members  = np.expand_dims(var_global_mean, axis=1)
 
 # Get other metadata
-methods = ['ERA-20C']
-ens_spatial = np.arange(n_ens)+1
+methods = ['ERA5']
+ens_spatial = np.array([1])
 ens_global = ens_spatial
 
 # If this data can't be reformatted to the standard format, add a note here 
-notes = ['']
+notes = ['ERA5 has ensemble members on a different grid. they are not included here. The mean and the ensemble member are set to be the same.']
+
+# Check the shape of the variables
+print(var_spatial_members.shape)
+print(var_spatial_mean.shape)
+print(var_global_members.shape)
+print(var_global_mean.shape)
 
 
 #%% FORMAT DATA
@@ -174,13 +165,10 @@ notes = ['']
 # Create new array
 data_xarray_output = xr.Dataset(
     {
-        var_txt+'_global':(['method','ens_global','age'],             var_global_season[:,:,years_with_data]),
-        var_txt+'_mean':  (['method','age','lat','lon'],              var_season[:,years_with_data,:,:]),
-        var_txt+'_ens':   (['method','ens_spatial','age','lat','lon'],var_ens_season[:,:,years_with_data,:,:])
-        #var_txt+'_global_mean':    (['method','age'],                          var_global_mean,    {'units':'degrees Celsius'}),
-        #var_txt+'_global_members': (['method','ens_global','age'],             var_global_members, {'units':'degrees Celsius'}),
-        #var_txt+'_spatial_mean':   (['method','age','lat','lon'],              var_spatial_mean,   {'units':'degrees Celsius'}),
-        #var_txt+'_spatial_members':(['method','ens_spatial','age','lat','lon'],var_spatial_members,{'units':'degrees Celsius'})
+        var_txt+'_global_mean':    (['method','age'],                          var_global_mean,    {'units':unit_txt}),
+        var_txt+'_global_members': (['method','ens_global','age'],             var_global_members, {'units':unit_txt}),
+        var_txt+'_spatial_mean':   (['method','age','lat','lon'],              var_spatial_mean,   {'units':unit_txt}),
+        var_txt+'_spatial_members':(['method','ens_spatial','age','lat','lon'],var_spatial_members,{'units':unit_txt})
     },
     coords={
         'method':     (['method'],methods),

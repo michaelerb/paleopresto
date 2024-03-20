@@ -1,4 +1,2 @@
-readme_env.txt
-more/*
-__pycache__/*
-2_make_webpages/1_make_maps_and_ts_*.py
+6_bokeh_ts_example/*
+

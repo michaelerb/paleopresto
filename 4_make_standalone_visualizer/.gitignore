@@ -1,0 +1,4 @@
+run_script.sh
+logfile_presto_viz.txt
+more/*
+__pycache__/*
