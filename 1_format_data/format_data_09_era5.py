@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a standardized netcdf file for the ERA5 reanalysis.
 #    author: Michael P. Erb
-#    date  : 3/19/2024
+#    date  : 3/27/2024
 #=============================================================================
 
 import sys
@@ -119,7 +119,7 @@ for i,year in enumerate(years):
         data_global_DJF = np.concatenate((data_global_D,data_global_JF),axis=0)
         var_global_mean[i] = np.average(data_global_DJF,axis=0,weights=weights_DJF)
 
-
+"""
 #%% CALCULATIONS 3
 
 # Find the years with data in all 12 months
@@ -129,7 +129,8 @@ years_with_data = np.isfinite(var_spatial_mean_mean)
 # Select only the years with data in all 12 months
 var_spatial_mean = var_spatial_mean[years_with_data,:,:]
 var_global_mean  = var_global_mean[years_with_data]
-
+age = age[years_with_data]
+"""
 
 #%% CALCULATIONS 4
 
@@ -175,7 +176,7 @@ data_xarray_output = xr.Dataset(
         'notes':      (['notes'],notes),
         'ens_global': (['ens_global'],ens_global,{'description':'ensemble members'}),
         'ens_spatial':(['ens_spatial'],ens_spatial,{'description':'ensemble members'}),
-        'age':        (['age'],age[years_with_data],{'units':'yr BP'}),
+        'age':        (['age'],age,{'units':'yr BP'}),
         'lat':        (['lat'],lat,{'units':'degrees_north'}),
         'lon':        (['lon'],lon,{'units':'degrees_east'}),
         'lat_bounds': (['lat_bounds'],lat_bounds,{'units':'degrees_north'}),

@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a set of maps and time series for the visualizer webpage.
 #    author: Michael P. Erb
-#    date  : 3/19/2024
+#    date  : 3/28/2024
 #==============================================================================
 
 import os
@@ -49,8 +49,6 @@ starttime_total = timekeeping.time() # Start timer
 #dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'spei';   quantity_txt = 'JJA'
 #dataset_txt = 'phyda';         version_txt = '1_0_0'; var_txt = 'spei';   quantity_txt = 'DJF'
 #dataset_txt = 'neukom2019';    version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
-#dataset_txt = 'nada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
-#dataset_txt = 'owda';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
 #dataset_txt = 'era20c';        version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'Annual'
 #dataset_txt = 'era20c';        version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'JJA'
 #dataset_txt = 'era20c';        version_txt = '1_0_0'; var_txt = 'tas';    quantity_txt = 'DJF'
@@ -63,6 +61,9 @@ starttime_total = timekeeping.time() # Start timer
 #dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'slp';    quantity_txt = 'Annual'
 #dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'slp';    quantity_txt = 'JJA'
 #dataset_txt = 'era5';          version_txt = '1_0_0'; var_txt = 'slp';    quantity_txt = 'DJF'
+#dataset_txt = 'nada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
+#dataset_txt = 'owda';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
+#dataset_txt = 'mada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
 dataset_txt = sys.argv[1]; version_txt = sys.argv[2]; var_txt = sys.argv[3]; quantity_txt = sys.argv[4]
 
 
@@ -146,16 +147,17 @@ elif dataset_txt == 'lmr':           ref_period = '0-1 ka';       map_region = '
 elif dataset_txt == 'phyda':         ref_period = '0-1 ka';       map_region = 'global';    map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True
 elif dataset_txt == 'neukom2019':    ref_period = '0-1 ka';       map_region = 'global';    map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True
 elif dataset_txt == 'graphem':       ref_period = '0-1 ka';       map_region = 'global';    map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True
-elif dataset_txt == 'nada':          ref_period = 'none';         map_region = 'n_america'; map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
-elif dataset_txt == 'owda':          ref_period = 'none';         map_region = 'europe';    map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
 elif dataset_txt == 'era20c':        ref_period = '1951-1980 CE'; map_region = 'global';    map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True
 elif dataset_txt == 'era5':          ref_period = '1951-1980 CE'; map_region = 'global';    map_type = 'contourf';         make_gridded_ts = True;  make_regional_ts = True
+elif dataset_txt == 'nada':          ref_period = 'none';         map_region = 'n_america'; map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
+elif dataset_txt == 'owda':          ref_period = 'none';         map_region = 'europe';    map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
+elif dataset_txt == 'mada':          ref_period = 'none';         map_region = 's_asia';    map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
 else: print(' === ERROR: Unknown dataset:',dataset_txt)
 
 # Some dataset-specific adjustments, to make webpages more useable
-if dataset_txt in ['nada','owda']: ts_yrange = [-10,10]
-if dataset_txt == 'lgmr':          ts_yrange = [-30,5]
-if dataset_txt == 'kaufman2020':   levels = np.arange(-2,2.1,.2)
+if dataset_txt in ['nada','owda','mada']: ts_yrange = [-10,10]
+if dataset_txt == 'lgmr':                 ts_yrange = [-30,5]
+if dataset_txt == 'kaufman2020':          levels = np.arange(-2,2.1,.2)
 
 
 #%% PROCESS SPATIAL DATA
@@ -340,6 +342,7 @@ for i,time in enumerate(time_var):
     if   map_region == 'global':    ax1.set_extent([-179.99,179.99,-85,85],crs=ccrs.PlateCarree()); extra_txt_x = 0;       extra_txt_y = -82;   grid_x = 60; grid_y = 30
     elif map_region == 'n_america': ax1.set_extent([-171.5,-52,-5,84],     crs=ccrs.PlateCarree()); extra_txt_x = -111.75; extra_txt_y = 7.5;   grid_x = 20; grid_y = 10
     elif map_region == 'europe':    ax1.set_extent([-13,46,26,72],         crs=ccrs.PlateCarree()); extra_txt_x = 16.5;    extra_txt_y = 31.25; grid_x = 10; grid_y = 5
+    elif map_region == 's_asia':    ax1.set_extent([59.5,145.5,-18.5,58],  crs=ccrs.PlateCarree()); extra_txt_x = 102.5;   extra_txt_y = -12;   grid_x = 20; grid_y = 10
     if map_type == 'contourf':
         var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_spatial_mean_allmethods[i,:,:],coord=lon)
         map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
