@@ -15,7 +15,7 @@ def select_latlons(lat,lon,map_region,dataset_txt):
     # Select the approximate grid to generate time series figures for
     if   map_region == 'global':    lat_grid_desired = 5; lon_grid_desired = 5
     elif map_region == 'n_america': lat_grid_desired = 2; lon_grid_desired = 2
-    elif map_region == 'europe':    lat_grid_desired = 1; lon_grid_desired = 1
+    else:                           lat_grid_desired = 1; lon_grid_desired = 1
     #
     # If requested, figure out a reduced set of indices for generating figures
     if len(lat)*len(lon) > 1000:

@@ -1,7 +1,7 @@
 #==============================================================================
 # Make a set of maps and time series for the visualizer webpage.
 #    author: Michael P. Erb
-#    date  : 3/28/2024
+#    date  : 3/29/2024
 #==============================================================================
 
 import os
@@ -64,6 +64,7 @@ starttime_total = timekeeping.time() # Start timer
 #dataset_txt = 'nada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
 #dataset_txt = 'owda';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
 #dataset_txt = 'mada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'JJA'
+#dataset_txt = 'sada';          version_txt = '1_0_0'; var_txt = 'pdsi';   quantity_txt = 'DJF'
 dataset_txt = sys.argv[1]; version_txt = sys.argv[2]; var_txt = sys.argv[3]; quantity_txt = sys.argv[4]
 
 
@@ -152,12 +153,13 @@ elif dataset_txt == 'era5':          ref_period = '1951-1980 CE'; map_region = '
 elif dataset_txt == 'nada':          ref_period = 'none';         map_region = 'n_america'; map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
 elif dataset_txt == 'owda':          ref_period = 'none';         map_region = 'europe';    map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
 elif dataset_txt == 'mada':          ref_period = 'none';         map_region = 's_asia';    map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
+elif dataset_txt == 'sada':          ref_period = 'none';         map_region = 's_america'; map_type = 'pcolormesh';       make_gridded_ts = True;  make_regional_ts = False
 else: print(' === ERROR: Unknown dataset:',dataset_txt)
 
 # Some dataset-specific adjustments, to make webpages more useable
-if dataset_txt in ['nada','owda','mada']: ts_yrange = [-10,10]
-if dataset_txt == 'lgmr':                 ts_yrange = [-30,5]
-if dataset_txt == 'kaufman2020':          levels = np.arange(-2,2.1,.2)
+if dataset_txt in ['nada','owda','mada','sada']: ts_yrange = [-10,10]
+if dataset_txt == 'lgmr':                        ts_yrange = [-30,5]
+if dataset_txt == 'kaufman2020':                 levels = np.arange(-2,2.1,.2)
 
 
 #%% PROCESS SPATIAL DATA
@@ -339,10 +341,11 @@ for i,time in enumerate(time_var):
     # Make the primary map to show
     plt.figure(figsize=(10,10))
     ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
-    if   map_region == 'global':    ax1.set_extent([-179.99,179.99,-85,85],crs=ccrs.PlateCarree()); extra_txt_x = 0;       extra_txt_y = -82;   grid_x = 60; grid_y = 30
-    elif map_region == 'n_america': ax1.set_extent([-171.5,-52,-5,84],     crs=ccrs.PlateCarree()); extra_txt_x = -111.75; extra_txt_y = 7.5;   grid_x = 20; grid_y = 10
-    elif map_region == 'europe':    ax1.set_extent([-13,46,26,72],         crs=ccrs.PlateCarree()); extra_txt_x = 16.5;    extra_txt_y = 31.25; grid_x = 10; grid_y = 5
-    elif map_region == 's_asia':    ax1.set_extent([59.5,145.5,-18.5,58],  crs=ccrs.PlateCarree()); extra_txt_x = 102.5;   extra_txt_y = -12;   grid_x = 20; grid_y = 10
+    if   map_region == 'global':    ax1.set_extent([-179.99,179.99,-85,85],  crs=ccrs.PlateCarree()); extra_txt_x = 0;       extra_txt_y = -82;   grid_x = 60; grid_y = 30
+    elif map_region == 'n_america': ax1.set_extent([-171.5,-52,-5,84],       crs=ccrs.PlateCarree()); extra_txt_x = -111.75; extra_txt_y = 7.5;   grid_x = 20; grid_y = 10
+    elif map_region == 'europe':    ax1.set_extent([-13,46,26,72],           crs=ccrs.PlateCarree()); extra_txt_x = 16.5;    extra_txt_y = 31.25; grid_x = 10; grid_y = 5
+    elif map_region == 's_asia':    ax1.set_extent([59.5,145.5,-18.5,58],    crs=ccrs.PlateCarree()); extra_txt_x = 102.5;   extra_txt_y = -12;   grid_x = 20; grid_y = 10
+    elif map_region == 's_america': ax1.set_extent([-77.5,-49.5,-59,-11.5],  crs=ccrs.PlateCarree()); extra_txt_x = -63.5;   extra_txt_y = -56.6; grid_x = 10; grid_y = 5
     if map_type == 'contourf':
         var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_spatial_mean_allmethods[i,:,:],coord=lon)
         map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
@@ -384,9 +387,7 @@ for i,time in enumerate(time_var):
 i=0;time=time_var[i]
 plt.figure(figsize=(10,10))
 ax1 = plt.subplot2grid((1,1),(0,0),projection=ccrs.Mercator(central_longitude=0,min_latitude=-85,max_latitude=85))
-if   map_region == 'global':    ax1.set_extent([-179.99,179.99,-85,85],crs=ccrs.PlateCarree())
-elif map_region == 'n_america': ax1.set_extent([-171.5,-52,-5,84],     crs=ccrs.PlateCarree())
-elif map_region == 'europe':    ax1.set_extent([-13,46,26,72],         crs=ccrs.PlateCarree())
+ax1.set_extent([-179.99,179.99,-85,85],crs=ccrs.PlateCarree())
 if map_type == 'contourf':
     var_cyclic,lon_cyclic = cutil.add_cyclic_point(var_spatial_mean_allmethods[i,:,:],coord=lon)
     map1 = ax1.contourf(lon_cyclic,lat,var_cyclic,colors=colors_selected,levels=levels,extend='both',transform=ccrs.PlateCarree())
